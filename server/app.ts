@@ -36,11 +36,15 @@ export function createApp(): Application {
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
   // Static uploads directory serving
-  const uploadsDir = path.resolve(process.cwd(), 'uploads');
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
+  try {
+    const uploadsDir = path.resolve(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    app.use('/uploads', express.static(uploadsDir, { maxAge: '1d' }));
+  } catch {
+    // Gracefully ignore filesystem errors in read-only serverless runtimes (e.g., Vercel)
   }
-  app.use('/uploads', express.static(uploadsDir, { maxAge: '1d' }));
 
   // Basic Health Check
   app.get('/api/health', (_req, res) => {

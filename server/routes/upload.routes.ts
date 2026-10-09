@@ -13,11 +13,15 @@ const ALLOWED_CATEGORIES = ['avatars', 'links', 'covers'] as const;
 type UploadCategory = typeof ALLOWED_CATEGORIES[number];
 
 // Ensure upload directories exist on server startup
-for (const cat of ALLOWED_CATEGORIES) {
-  const dir = path.join(UPLOADS_ROOT, cat);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+try {
+  for (const cat of ALLOWED_CATEGORIES) {
+    const dir = path.join(UPLOADS_ROOT, cat);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
   }
+} catch {
+  // Gracefully ignore filesystem errors in read-only serverless runtimes (e.g., Vercel)
 }
 
 const DATA_IMAGE_REGEX = /^data:image\/(jpeg|jpg|png|webp|gif);base64,([A-Za-z0-9+/=\s]+)$/i;
