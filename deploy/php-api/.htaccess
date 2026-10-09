@@ -1,0 +1,22 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Route /api/* and /r/* requests to the PHP API router if running on PHP+MySQL shared hosting
+  RewriteCond %{REQUEST_URI} ^/(api|r)/ [NC]
+  RewriteRule ^ deploy/php-api/index.php [QSA,L]
+
+  # Serve existing static files from Vite dist/client
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # SPA Fallback: Route all other requests (e.g., /:username, /dashboard) to index.html
+  RewriteRule ^ index.html [QSA,L]
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

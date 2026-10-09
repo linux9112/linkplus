@@ -1,0 +1,574 @@
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import {
+  ExternalLink,
+  Pin,
+  Globe,
+  Github,
+  Twitter,
+  Instagram,
+  Linkedin,
+  Youtube,
+  Mail,
+  Music,
+  Video,
+  ShoppingBag,
+  FileText,
+  Code,
+  Heart,
+  Star,
+  Calendar,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
+import type { Profile, Link as LinkItem } from '../../types/index';
+import Avatar from '../ui/Avatar';
+
+export interface ThemePresetDefinition {
+  id: string;
+  name: string;
+  category: 'dark' | 'light' | 'gradient' | 'glass';
+  backgroundType: 'color' | 'gradient';
+  backgroundValue: string;
+  textColor: string;
+  subtextColor: string;
+  cardBg: string;
+  cardBorder: string;
+  cardText: string;
+  buttonShape: 'rounded' | 'rounded-lg' | 'rounded-full' | 'sharp';
+  buttonStyle: 'solid' | 'glass' | 'outline' | 'brutal';
+  accentColor: string;
+  fontFamily: string;
+}
+
+export const THEME_PRESETS: Record<string, ThemePresetDefinition> = {
+  default: {
+    id: 'default',
+    name: 'Midnight Slate',
+    category: 'dark',
+    backgroundType: 'gradient',
+    backgroundValue: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #090d16 100%)',
+    textColor: '#f8fafc',
+    subtextColor: '#94a3b8',
+    cardBg: 'rgba(30, 41, 59, 0.78)',
+    cardBorder: 'rgba(148, 163, 184, 0.18)',
+    cardText: '#f8fafc',
+    buttonShape: 'rounded-full',
+    buttonStyle: 'glass',
+    accentColor: '#6366f1',
+    fontFamily: 'Inter',
+  },
+  glass_aurora: {
+    id: 'glass_aurora',
+    name: 'Aurora Glass',
+    category: 'glass',
+    backgroundType: 'gradient',
+    backgroundValue: 'linear-gradient(135deg, #1e1b4b 0%, #311042 50%, #0f172a 100%)',
+    textColor: '#ffffff',
+    subtextColor: '#cbd5e1',
+    cardBg: 'rgba(255, 255, 255, 0.10)',
+    cardBorder: 'rgba(255, 255, 255, 0.22)',
+    cardText: '#ffffff',
+    buttonShape: 'rounded-lg',
+    buttonStyle: 'glass',
+    accentColor: '#a855f7',
+    fontFamily: 'Plus Jakarta Sans',
+  },
+  ocean_breeze: {
+    id: 'ocean_breeze',
+    name: 'Ocean Breeze',
+    category: 'gradient',
+    backgroundType: 'gradient',
+    backgroundValue: 'linear-gradient(150deg, #082f49 0%, #0369a1 50%, #0f172a 100%)',
+    textColor: '#f0f9ff',
+    subtextColor: '#bae6fd',
+    cardBg: 'rgba(12, 74, 110, 0.65)',
+    cardBorder: 'rgba(56, 189, 248, 0.30)',
+    cardText: '#f0f9ff',
+    buttonShape: 'rounded-full',
+    buttonStyle: 'glass',
+    accentColor: '#38bdf8',
+    fontFamily: 'Inter',
+  },
+  emerald_forest: {
+    id: 'emerald_forest',
+    name: 'Emerald Canopy',
+    category: 'gradient',
+    backgroundType: 'gradient',
+    backgroundValue: 'linear-gradient(150deg, #022c22 0%, #065f46 60%, #090d16 100%)',
+    textColor: '#ecfdf5',
+    subtextColor: '#a7f3d0',
+    cardBg: 'rgba(6, 78, 59, 0.65)',
+    cardBorder: 'rgba(52, 211, 153, 0.28)',
+    cardText: '#ecfdf5',
+    buttonShape: 'rounded-lg',
+    buttonStyle: 'solid',
+    accentColor: '#10b981',
+    fontFamily: 'Inter',
+  },
+  sunset_glow: {
+    id: 'sunset_glow',
+    name: 'Sunset Glow',
+    category: 'gradient',
+    backgroundType: 'gradient',
+    backgroundValue: 'linear-gradient(135deg, #431407 0%, #9a3412 45%, #581c87 100%)',
+    textColor: '#fff7ed',
+    subtextColor: '#fed7aa',
+    cardBg: 'rgba(255, 255, 255, 0.12)',
+    cardBorder: 'rgba(251, 146, 60, 0.32)',
+    cardText: '#fff7ed',
+    buttonShape: 'rounded-full',
+    buttonStyle: 'glass',
+    accentColor: '#f97316',
+    fontFamily: 'Plus Jakarta Sans',
+  },
+  minimal_light: {
+    id: 'minimal_light',
+    name: 'Minimal Daylight',
+    category: 'light',
+    backgroundType: 'color',
+    backgroundValue: '#f8fafc',
+    textColor: '#0f172a',
+    subtextColor: '#475569',
+    cardBg: '#ffffff',
+    cardBorder: '#e2e8f0',
+    cardText: '#0f172a',
+    buttonShape: 'rounded-lg',
+    buttonStyle: 'solid',
+    accentColor: '#4f46e5',
+    fontFamily: 'Inter',
+  },
+  editorial_cream: {
+    id: 'editorial_cream',
+    name: 'Neo Brutal Cream',
+    category: 'light',
+    backgroundType: 'color',
+    backgroundValue: '#fef3c7',
+    textColor: '#111827',
+    subtextColor: '#374151',
+    cardBg: '#ffffff',
+    cardBorder: '#111827',
+    cardText: '#111827',
+    buttonShape: 'rounded',
+    buttonStyle: 'brutal',
+    accentColor: '#d97706',
+    fontFamily: 'Plus Jakarta Sans',
+  },
+  cyber_neon: {
+    id: 'cyber_neon',
+    name: 'Cyber Matrix',
+    category: 'dark',
+    backgroundType: 'color',
+    backgroundValue: '#05050a',
+    textColor: '#f8fafc',
+    subtextColor: '#94a3b8',
+    cardBg: 'rgba(15, 23, 42, 0.9)',
+    cardBorder: '#6366f1',
+    cardText: '#e0e7ff',
+    buttonShape: 'sharp',
+    buttonStyle: 'outline',
+    accentColor: '#818cf8',
+    fontFamily: 'JetBrains Mono',
+  },
+};
+
+export function renderLinkIcon(iconName?: string | null) {
+  switch ((iconName || '').toLowerCase()) {
+    case 'github':
+      return <Github className="w-5 h-5" />;
+    case 'twitter':
+    case 'x':
+      return <Twitter className="w-5 h-5" />;
+    case 'instagram':
+      return <Instagram className="w-5 h-5" />;
+    case 'linkedin':
+      return <Linkedin className="w-5 h-5" />;
+    case 'youtube':
+    case 'video':
+      return <Video className="w-5 h-5" />;
+    case 'music':
+    case 'spotify':
+      return <Music className="w-5 h-5" />;
+    case 'shop':
+    case 'store':
+      return <ShoppingBag className="w-5 h-5" />;
+    case 'blog':
+    case 'article':
+      return <FileText className="w-5 h-5" />;
+    case 'code':
+      return <Code className="w-5 h-5" />;
+    case 'heart':
+      return <Heart className="w-5 h-5" />;
+    case 'star':
+      return <Star className="w-5 h-5" />;
+    case 'calendar':
+      return <Calendar className="w-5 h-5" />;
+    case 'mail':
+    case 'email':
+      return <Mail className="w-5 h-5" />;
+    default:
+      return <Globe className="w-5 h-5" />;
+  }
+}
+
+export function renderSocialIcon(platform: string) {
+  switch (platform.toLowerCase()) {
+    case 'github':
+      return <Github className="w-5 h-5" />;
+    case 'twitter':
+    case 'x':
+      return <Twitter className="w-5 h-5" />;
+    case 'instagram':
+      return <Instagram className="w-5 h-5" />;
+    case 'linkedin':
+      return <Linkedin className="w-5 h-5" />;
+    case 'youtube':
+      return <Youtube className="w-5 h-5" />;
+    case 'email':
+    case 'mail':
+      return <Mail className="w-5 h-5" />;
+    case 'music':
+    case 'spotify':
+    case 'tiktok':
+      return <Music className="w-5 h-5" />;
+    default:
+      return <Globe className="w-5 h-5" />;
+  }
+}
+
+function getYoutubeEmbedUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes('youtube.com')) {
+      const v = parsed.searchParams.get('v');
+      if (v) return `https://www.youtube.com/embed/${v}`;
+    }
+    if (parsed.hostname === 'youtu.be') {
+      const id = parsed.pathname.slice(1);
+      if (id) return `https://www.youtube.com/embed/${id}`;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+export interface PublicProfileRendererProps {
+  username: string;
+  profile: Profile;
+  links: LinkItem[];
+  isPreview?: boolean;
+  onReportClick?: (linkId?: string) => void;
+}
+
+export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
+  username,
+  profile,
+  links,
+  isPreview = false,
+  onReportClick,
+}) => {
+  const [expandedEmbeds, setExpandedEmbeds] = useState<Record<string, boolean>>({});
+
+  const rawTheme = profile?.theme_settings || (profile as any)?.themeSettings || {};
+  const presetKey = String(rawTheme.preset || 'default');
+  const preset = THEME_PRESETS[presetKey] || THEME_PRESETS.default;
+
+  const bgType = rawTheme.background_type || preset.backgroundType;
+  const bgValue = rawTheme.background_value || preset.backgroundValue;
+  const buttonShape = (rawTheme.button_shape as string) || preset.buttonShape;
+  const buttonStyle = (rawTheme.button_style as string) || preset.buttonStyle;
+  const fontFamily = (rawTheme.font_family as string) || preset.fontFamily;
+  const customButtonColor = rawTheme.button_color as string | undefined;
+  const customTextColor = (rawTheme.text_color as string) || preset.textColor;
+  const linkSpacing = (rawTheme.link_spacing as string) || 'normal';
+
+  const containerStyle: React.CSSProperties = {
+    fontFamily: `${fontFamily}, Inter, sans-serif`,
+    color: customTextColor,
+  };
+
+  if (bgType === 'image' && bgValue) {
+    containerStyle.backgroundImage = `linear-gradient(rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.85)), url(${bgValue})`;
+    containerStyle.backgroundSize = 'cover';
+    containerStyle.backgroundPosition = 'center';
+  } else if (bgType === 'gradient' || String(bgValue).startsWith('linear-gradient')) {
+    containerStyle.background = String(bgValue);
+  } else {
+    containerStyle.backgroundColor = String(bgValue);
+  }
+
+  const shapeClass =
+    buttonShape === 'rounded-full'
+      ? 'rounded-full'
+      : buttonShape === 'sharp'
+      ? 'rounded-none'
+      : buttonShape === 'rounded'
+      ? 'rounded-lg'
+      : 'rounded-2xl';
+
+  const spacingClass =
+    linkSpacing === 'compact' ? 'space-y-2.5' : linkSpacing === 'relaxed' ? 'space-y-5' : 'space-y-3.5';
+
+  const socialLinks = Array.isArray(profile?.social_links)
+    ? profile.social_links
+    : Array.isArray((profile as any)?.socialLinks)
+    ? (profile as any).socialLinks
+    : [];
+
+  const displayName = profile?.display_name || (profile as any)?.displayName || username;
+  const avatarUrl = profile?.avatar_url ?? (profile as any)?.avatarUrl ?? null;
+
+  // Group links if categories exist
+  const categories: string[] = [];
+  links.forEach((l) => {
+    const cat = l.category?.trim() || '';
+    if (!categories.includes(cat)) categories.push(cat);
+  });
+
+  return (
+    <div
+      style={containerStyle}
+      className={`w-full ${
+        isPreview ? 'min-h-full py-8 px-4' : 'min-h-screen py-12 px-4 sm:px-6'
+      } flex flex-col items-center justify-between transition-all duration-300`}
+    >
+      <div className="w-full max-w-xl mx-auto flex flex-col items-center">
+        {/* Profile Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center text-center mb-8 w-full"
+        >
+          <div className="relative mb-4">
+            <Avatar src={avatarUrl} name={displayName} size="xl" />
+          </div>
+
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{displayName}</h1>
+          <p className="text-xs font-medium opacity-75 mt-1">@{username}</p>
+
+          {profile?.bio && (
+            <p
+              style={{ color: preset.subtextColor }}
+              className="mt-3 text-sm sm:text-base max-w-md leading-relaxed whitespace-pre-line"
+            >
+              {profile.bio}
+            </p>
+          )}
+
+          {/* Social Handles Bar */}
+          {socialLinks.length > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-2.5 mt-5">
+              {socialLinks.map((s: { platform: string; url: string }, idx: number) => (
+                <a
+                  key={`${s.platform}-${idx}`}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    if (isPreview) e.preventDefault();
+                  }}
+                  style={{
+                    backgroundColor: preset.cardBg,
+                    borderColor: preset.cardBorder,
+                    color: preset.cardText,
+                  }}
+                  className="p-2.5 rounded-full border backdrop-blur-md hover:scale-110 transition-transform shadow-sm"
+                  title={s.platform}
+                >
+                  {renderSocialIcon(s.platform)}
+                </a>
+              ))}
+            </div>
+          )}
+        </motion.div>
+
+        {/* Links List */}
+        <div className={`w-full ${spacingClass}`}>
+          {links.length === 0 ? (
+            <div
+              style={{
+                backgroundColor: preset.cardBg,
+                borderColor: preset.cardBorder,
+                color: preset.subtextColor,
+              }}
+              className="text-center py-10 px-6 rounded-2xl border backdrop-blur-md text-sm"
+            >
+              No public links published yet.
+            </div>
+          ) : (
+            categories.map((cat) => {
+              const catLinks = links.filter((l) => (l.category?.trim() || '') === cat);
+              return (
+                <div key={cat || '__uncategorized'} className={spacingClass}>
+                  {cat && (
+                    <div className="pt-2 pb-1 text-center">
+                      <span className="text-xs font-bold uppercase tracking-widest opacity-70">{cat}</span>
+                    </div>
+                  )}
+
+                  {catLinks.map((link, index) => {
+                    const isPinned = link.is_pinned ?? (link as any).isPinned;
+                    const isFeatured = link.is_featured ?? (link as any).isFeatured;
+                    const thumb = link.thumbnail_url ?? (link as any).thumbnailUrl;
+                    const label = link.custom_label ?? (link as any).customLabel;
+                    const mediaUrl = link.media_url ?? (link as any).mediaUrl;
+                    const ytEmbed =
+                      getYoutubeEmbedUrl(mediaUrl || link.destination_url || '') || null;
+                    const isEmbedOpen = Boolean(expandedEmbeds[link.id]);
+
+                    const cardStyle: React.CSSProperties = {
+                      backgroundColor: customButtonColor || preset.cardBg,
+                      borderColor: isFeatured ? preset.accentColor : preset.cardBorder,
+                      color: preset.cardText,
+                    };
+
+                    if (buttonStyle === 'brutal') {
+                      cardStyle.boxShadow = '4px 4px 0px 0px rgba(17,24,39,1)';
+                      cardStyle.borderWidth = '2px';
+                    }
+
+                    const href = isPreview ? link.destination_url : `/r/${link.id}`;
+
+                    return (
+                      <motion.div
+                        key={link.id}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.04 }}
+                        className="w-full"
+                      >
+                        <div
+                          style={cardStyle}
+                          className={`group relative w-full border backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl ${shapeClass} ${
+                            isFeatured ? 'ring-2 ring-indigo-500/50' : ''
+                          }`}
+                        >
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => {
+                              if (isPreview) e.preventDefault();
+                            }}
+                            className="flex items-center justify-between gap-3.5 px-5 py-4 w-full"
+                          >
+                            {/* Left Icon or Thumbnail */}
+                            <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                              {thumb ? (
+                                <img
+                                  src={thumb}
+                                  alt={link.title}
+                                  loading="lazy"
+                                  className="w-11 h-11 rounded-xl object-cover shrink-0 border border-white/15"
+                                />
+                              ) : (
+                                <div
+                                  style={{ backgroundColor: 'rgba(99, 102, 241, 0.14)' }}
+                                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                                >
+                                  {renderLinkIcon(link.icon)}
+                                </div>
+                              )}
+
+                              <div className="min-w-0 flex-1 text-left">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-semibold text-sm sm:text-base truncate">
+                                    {link.title}
+                                  </span>
+                                  {isPinned && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300">
+                                      <Pin className="w-2.5 h-2.5" />
+                                      Pinned
+                                    </span>
+                                  )}
+                                  {label && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300">
+                                      {label}
+                                    </span>
+                                  )}
+                                </div>
+                                {link.description && (
+                                  <p className="text-xs opacity-75 truncate mt-0.5">
+                                    {link.description}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Right Action */}
+                            <div className="flex items-center gap-2 shrink-0">
+                              {ytEmbed && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setExpandedEmbeds((prev) => ({
+                                      ...prev,
+                                      [link.id]: !prev[link.id],
+                                    }));
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg bg-black/20 hover:bg-black/30 text-xs font-medium flex items-center gap-1"
+                                >
+                                  <span>Video</span>
+                                  {isEmbedOpen ? (
+                                    <ChevronUp className="w-3.5 h-3.5" />
+                                  ) : (
+                                    <ChevronDown className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                              )}
+                              <ExternalLink className="w-4 h-4 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                            </div>
+                          </a>
+
+                          {/* Embedded Video Player if expanded */}
+                          {ytEmbed && isEmbedOpen && (
+                            <div className="px-4 pb-4">
+                              <div className="aspect-video w-full rounded-xl overflow-hidden bg-black">
+                                <iframe
+                                  src={ytEmbed}
+                                  title={link.title}
+                                  className="w-full h-full"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* Footer Branding */}
+      <div className="mt-12 pt-4 flex items-center justify-center gap-4 text-xs opacity-75">
+        <a
+          href="/"
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/20 backdrop-blur-md border border-white/10 hover:opacity-100 transition-opacity"
+        >
+          <img src="/logo.jpg" alt="LinkPlus Logo" className="w-3.5 h-3.5 rounded-sm object-cover" />
+          <span className="font-semibold">LinkPlus</span>
+        </a>
+        {!isPreview && onReportClick && (
+          <button
+            type="button"
+            onClick={() => onReportClick()}
+            className="text-[11px] opacity-60 hover:opacity-100 underline"
+          >
+            Report Profile
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default PublicProfileRenderer;
