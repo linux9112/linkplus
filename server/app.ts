@@ -28,6 +28,7 @@ export function createApp(): Application {
   // Security headers & CORS
   app.use(helmetMiddleware);
   app.use(corsMiddleware);
+  app.options('*', corsMiddleware);
 
   // Performance & Body Parsing (10MB limit for rich media, logo and avatar uploads)
   app.use(compression());

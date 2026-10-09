@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction, ErrorRequestHandler } from 'expre
 import { ZodError } from 'zod';
 import { AuthError } from '../services/auth.service.js';
 import { env } from '../config/env.js';
+import { isAllowedOrigin } from './security.middleware.js';
 
 /**
  * Centralized application error handling middleware.
@@ -14,6 +15,14 @@ export const errorHandler: ErrorRequestHandler = (
   res: Response,
   _next: NextFunction
 ): void => {
+  // Ensure CORS headers are attached on error responses for legitimate origins
+  const origin = _req.headers.origin;
+  if (origin && isAllowedOrigin(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Vary', 'Origin');
+  }
+
   // 1. Custom AuthError (e.g. 400 validation, 401 unauth, 403 forbidden, 409 conflict)
   if (err instanceof AuthError) {
     const payload: { error: string; field?: string } = {

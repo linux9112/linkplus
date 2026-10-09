@@ -18,6 +18,9 @@ export const envSchema = z
       z.string().url().default('http://localhost:5173')
     ),
 
+    // Explicit CORS Origins Allowlist (comma-separated origins)
+    CORS_ORIGINS: stringOrUndefined,
+
     // MySQL Connection Configuration
     DB_HOST: z.preprocess(
       emptyToUndefined,
@@ -75,9 +78,31 @@ export const envSchema = z
       const encodedPass = encodeURIComponent(data.DB_PASSWORD);
       databaseUrl = `mysql://${encodedUser}:${encodedPass}@${data.DB_HOST}:${data.DB_PORT}/${data.DB_NAME}`;
     }
+
+    // Build unique allowed CORS origins
+    const corsSet = new Set<string>();
+    // Default allowed origins (including the production deployed frontend)
+    corsSet.add('https://linkkpluss.vercel.app');
+    corsSet.add('http://localhost:5173');
+    corsSet.add('http://localhost:3000');
+    corsSet.add('http://127.0.0.1:5173');
+    corsSet.add('http://127.0.0.1:3000');
+
+    if (data.APP_URL) {
+      corsSet.add(data.APP_URL.trim().replace(/\/+$/, ''));
+    }
+
+    if (data.CORS_ORIGINS) {
+      data.CORS_ORIGINS.split(',')
+        .map((s) => s.trim().replace(/\/+$/, ''))
+        .filter(Boolean)
+        .forEach((origin) => corsSet.add(origin));
+    }
+
     return {
       ...data,
       DATABASE_URL: databaseUrl,
+      ALLOWED_ORIGINS: Array.from(corsSet),
     };
   });
 

@@ -15,7 +15,7 @@ export const helmetMiddleware: RequestHandler = helmet({
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
-      connectSrc: ["'self'", env.APP_URL],
+      connectSrc: ["'self'", ...(env.ALLOWED_ORIGINS || [env.APP_URL])],
       frameAncestors: ["'self'"],
     },
   } : false, // Relaxed in development/testing for Vite dev tooling
@@ -23,7 +23,23 @@ export const helmetMiddleware: RequestHandler = helmet({
 });
 
 /**
- * CORS configuration restricting origins to env.APP_URL with credentials support.
+ * Checks if a given origin is allowed under the current CORS policy.
+ */
+export function isAllowedOrigin(origin?: string): boolean {
+  if (!origin) return true;
+  const clean = origin.trim().replace(/\/+$/, '');
+  const allowed = env.ALLOWED_ORIGINS || [
+    'https://linkkpluss.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000',
+  ];
+  return allowed.includes(clean);
+}
+
+/**
+ * CORS configuration restricting origins to env.ALLOWED_ORIGINS with credentials support.
  */
 export const corsMiddleware: RequestHandler = cors({
   origin: (origin, callback) => {
@@ -32,15 +48,7 @@ export const corsMiddleware: RequestHandler = cors({
       return callback(null, true);
     }
 
-    const allowedOrigins = [
-      env.APP_URL,
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'http://127.0.0.1:5173',
-      'http://127.0.0.1:3000',
-    ];
-
-    if (allowedOrigins.includes(origin) || env.NODE_ENV !== 'production') {
+    if (isAllowedOrigin(origin) || env.NODE_ENV !== 'production') {
       callback(null, true);
     } else {
       callback(new Error(`Origin ${origin} not allowed by CORS policy`));
@@ -50,4 +58,5 @@ export const corsMiddleware: RequestHandler = cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   exposedHeaders: ['set-cookie'],
+  maxAge: 86400,
 });

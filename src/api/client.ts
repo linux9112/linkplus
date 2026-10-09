@@ -1,6 +1,20 @@
 import { ApiError } from '../types/index';
 
-const BASE_URL = '';
+/**
+ * Configurable API base URL for production and development.
+ * In production on Vercel without a separate API domain, defaults to '' (same-origin relative paths).
+ * Can be configured via VITE_API_BASE_URL in Vercel project environment variables.
+ */
+const rawBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim() || '';
+export const API_BASE_URL = rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
+
+export function buildApiUrl(endpoint: string): string {
+  if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
+    return endpoint;
+  }
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${API_BASE_URL}${cleanEndpoint}`;
+}
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
@@ -9,7 +23,7 @@ interface RequestOptions extends RequestInit {
 async function request<T = any>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const { params, headers, ...customConfig } = options;
 
-  let url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`;
+  let url = buildApiUrl(endpoint);
 
   if (params) {
     const searchParams = new URLSearchParams();

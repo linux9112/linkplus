@@ -34,7 +34,21 @@ export const LoginPage: React.FC = () => {
       navigate(from, { replace: true });
     } catch (err: unknown) {
       if (err instanceof ApiError) {
-        setError(err.message);
+        const isCorsOrNetworkError =
+          err.status === 0 ||
+          (err.message &&
+            (err.message.includes('CORS') ||
+              err.message.includes('Failed to fetch') ||
+              err.message.includes('Network') ||
+              err.message.includes('not allowed by CORS')));
+
+        if (isCorsOrNetworkError) {
+          setError(
+            'Unable to connect to the authentication service. Please check your network connection or try again shortly.'
+          );
+        } else {
+          setError(err.message);
+        }
       } else {
         setError('Login failed. Please check your network connection.');
       }

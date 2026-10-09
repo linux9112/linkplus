@@ -74,7 +74,22 @@ export const SignupPage: React.FC = () => {
         } else if (err.field === 'password') {
           setFieldErrors((prev) => ({ ...prev, password: err.message }));
         } else {
-          setGeneralError(err.message);
+          // If error is a network or CORS connectivity issue, display a clean, user-friendly message
+          const isCorsOrNetworkError =
+            err.status === 0 ||
+            (err.message &&
+              (err.message.includes('CORS') ||
+                err.message.includes('Failed to fetch') ||
+                err.message.includes('Network') ||
+                err.message.includes('not allowed by CORS')));
+
+          if (isCorsOrNetworkError) {
+            setGeneralError(
+              'Unable to connect to the authentication service. Please check your network connection or try again shortly.'
+            );
+          } else {
+            setGeneralError(err.message);
+          }
         }
       } else {
         setGeneralError('An unexpected error occurred. Please try again.');
