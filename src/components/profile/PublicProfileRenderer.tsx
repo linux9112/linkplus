@@ -477,13 +477,25 @@ export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
                                     {link.title}
                                   </span>
                                   {isPinned && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300">
+                                    <span
+                                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                        preset.category === 'light'
+                                          ? 'bg-indigo-100 text-[#4F46E5] border border-indigo-200'
+                                          : 'bg-indigo-500/20 text-indigo-300 border border-indigo-400/20'
+                                      }`}
+                                    >
                                       <Pin className="w-2.5 h-2.5" />
                                       Pinned
                                     </span>
                                   )}
                                   {label && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300">
+                                    <span
+                                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                        preset.category === 'light'
+                                          ? 'bg-amber-100 text-[#B45309] border border-amber-200'
+                                          : 'bg-amber-500/20 text-amber-300 border border-amber-400/20'
+                                      }`}
+                                    >
                                       {label}
                                     </span>
                                   )}

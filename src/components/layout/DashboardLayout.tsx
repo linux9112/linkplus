@@ -20,6 +20,7 @@ import { useAuth } from '../../context/AuthContext';
 import Avatar from '../ui/Avatar';
 import DatabaseSetupBanner from '../ui/DatabaseSetupBanner';
 import { useToast } from '../ui/Toast';
+import ThemeToggle from '../ui/ThemeToggle';
 
 export const DashboardLayout: React.FC = () => {
   const { user, profile, logout } = useAuth();
@@ -167,6 +168,7 @@ export const DashboardLayout: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2.5">
+              <ThemeToggle />
               <button
                 onClick={handleCopyUrl}
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-[#272D3A] hover:bg-slate-50 dark:hover:bg-[#202430] border border-[#E5E7EB] dark:border-[#343B4B] text-xs font-medium text-[#171923] dark:text-[#F9FAFB] shadow-sm transition-colors"
@@ -203,12 +205,15 @@ export const DashboardLayout: React.FC = () => {
                     />
                     <span className="font-bold text-[#171923] dark:text-[#F9FAFB]">LinkPlus</span>
                   </div>
-                  <button
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="p-1.5 rounded-lg text-[#626B7A] hover:text-[#171923] dark:text-[#A7AFBD] dark:hover:text-[#F9FAFB]"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <ThemeToggle size="sm" />
+                    <button
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="p-1.5 rounded-lg text-[#626B7A] hover:text-[#171923] dark:text-[#A7AFBD] dark:hover:text-[#F9FAFB]"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
                 <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
                   {navItems.map((item) => {

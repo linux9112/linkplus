@@ -190,7 +190,7 @@ export const AppearancePage: React.FC = () => {
                   className={`px-4 py-2 rounded-xl text-xs font-semibold capitalize border transition-colors ${
                     backgroundType === t
                       ? 'bg-[#4F46E5] text-white border-[#4F46E5]'
-                      : 'bg-white dark:bg-[#202430] border-[#E5E7EB] dark:border-[#343B4B] text-[#626B7A] dark:text-[#A7AFBD] hover:text-[#171923]'
+                      : 'bg-white dark:bg-[#202430] border-[#E5E7EB] dark:border-[#343B4B] text-[#626B7A] dark:text-[#A7AFBD] hover:text-[#171923] dark:hover:text-[#F9FAFB]'
                   }`}
                 >
                   {t}
@@ -278,7 +278,7 @@ export const AppearancePage: React.FC = () => {
                     className={`py-2.5 px-3 rounded-xl text-xs font-semibold border transition-colors ${
                       buttonShape === s.id
                         ? 'bg-[#EEF2FF] border-[#4F46E5] text-[#4F46E5] dark:bg-[#4F46E5]/20 dark:text-[#818CF8]'
-                        : 'bg-white dark:bg-[#202430] border-[#E5E7EB] dark:border-[#343B4B] text-[#626B7A] dark:text-[#A7AFBD] hover:text-[#171923]'
+                        : 'bg-white dark:bg-[#202430] border-[#E5E7EB] dark:border-[#343B4B] text-[#626B7A] dark:text-[#A7AFBD] hover:text-[#171923] dark:hover:text-[#F9FAFB]'
                     }`}
                   >
                     {s.label}
@@ -301,7 +301,7 @@ export const AppearancePage: React.FC = () => {
                     className={`py-2.5 px-3 rounded-xl text-xs font-semibold capitalize border transition-colors ${
                       buttonStyle === st
                         ? 'bg-[#EEF2FF] border-[#4F46E5] text-[#4F46E5] dark:bg-[#4F46E5]/20 dark:text-[#818CF8]'
-                        : 'bg-white dark:bg-[#202430] border-[#E5E7EB] dark:border-[#343B4B] text-[#626B7A] dark:text-[#A7AFBD] hover:text-[#171923]'
+                        : 'bg-white dark:bg-[#202430] border-[#E5E7EB] dark:border-[#343B4B] text-[#626B7A] dark:text-[#A7AFBD] hover:text-[#171923] dark:hover:text-[#F9FAFB]'
                     }`}
                   >
                     {st}

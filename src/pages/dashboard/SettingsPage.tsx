@@ -118,7 +118,7 @@ export const SettingsPage: React.FC = () => {
       >
         <form onSubmit={handleChangePassword} className="space-y-4">
           {passwordError && (
-            <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-[#B91C1C]">
+            <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-xs text-[#B91C1C] dark:text-red-300">
               {passwordError}
             </div>
           )}

@@ -86,12 +86,12 @@ export const DatabaseSetupBanner: React.FC = () => {
 
         {expanded && (
           <div className="mt-3 pt-3 border-t border-amber-800/60 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            <div className="bg-slate-950/70 rounded-xl p-3.5 border border-amber-800/40">
+            <div className="bg-black/40 rounded-xl p-3.5 border border-amber-800/40">
               <div className="font-semibold text-amber-200 flex items-center gap-1.5 mb-2">
                 <Database className="w-4 h-4 text-amber-400" />
                 <span>How to Connect Your MySQL Database (.env)</span>
               </div>
-              <ol className="space-y-1 text-slate-300 list-decimal list-inside">
+              <ol className="space-y-1 text-amber-100/90 list-decimal list-inside">
                 <li>Open <code className="text-amber-300">.env</code> in the project root.</li>
                 <li>Set <code className="text-amber-300">DB_HOST</code> to your Hostinger MySQL host (or <code className="text-amber-300">127.0.0.1</code> for local MySQL).</li>
                 <li>Confirm <code className="text-amber-300">DB_NAME=u199400152_linkgenerator</code> and <code className="text-amber-300">DB_USER=u199400152_linkgenerator</code>.</li>
@@ -99,7 +99,7 @@ export const DatabaseSetupBanner: React.FC = () => {
                 <li>In Hostinger hPanel → Databases → Remote MySQL, whitelist your IP if connecting remotely.</li>
               </ol>
             </div>
-            <div className="bg-slate-950/70 rounded-xl p-3.5 border border-amber-800/40 flex flex-col justify-between">
+            <div className="bg-black/40 rounded-xl p-3.5 border border-amber-800/40 flex flex-col justify-between">
               <div>
                 <div className="font-semibold text-amber-200 flex items-center gap-1.5 mb-2">
                   <Terminal className="w-4 h-4 text-amber-400" />
@@ -110,9 +110,9 @@ export const DatabaseSetupBanner: React.FC = () => {
 npm run db:seed-admin`}
                 </pre>
               </div>
-              <p className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-2">
+              <p className="text-[11px] text-amber-200/80 flex items-center gap-1.5 mt-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>You can also import <code className="text-slate-200">server/db/migrations/001_initial_schema.sql</code> directly in phpMyAdmin.</span>
+                <span>You can also import <code className="text-amber-100">server/db/migrations/001_initial_schema.sql</code> directly in phpMyAdmin.</span>
               </p>
             </div>
           </div>

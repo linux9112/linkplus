@@ -22,6 +22,7 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { api } from '../../api/client';
 import type { Link as LinkItem } from '../../types/index';
 import Card from '../../components/ui/Card';
@@ -49,6 +50,8 @@ interface OverviewStats {
 
 export const OverviewPage: React.FC = () => {
   const { user, profile } = useAuth();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -237,28 +240,30 @@ export const OverviewPage: React.FC = () => {
               <div className="h-64 w-full pt-2">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#343B4B' : '#E5E7EB'} />
                     <XAxis
                       dataKey="date"
-                      tick={{ fill: '#626B7A', fontSize: 11 }}
-                      axisLine={{ stroke: '#E5E7EB' }}
+                      tick={{ fill: isDark ? '#A7AFBD' : '#626B7A', fontSize: 11 }}
+                      axisLine={{ stroke: isDark ? '#343B4B' : '#E5E7EB' }}
                       tickLine={false}
                     />
                     <YAxis
-                      tick={{ fill: '#626B7A', fontSize: 11 }}
+                      tick={{ fill: isDark ? '#A7AFBD' : '#626B7A', fontSize: 11 }}
                       axisLine={false}
                       tickLine={false}
                       allowDecimals={false}
                     />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: '#FFFFFF',
-                        border: '1px solid #E5E7EB',
+                        backgroundColor: isDark ? '#202430' : '#FFFFFF',
+                        border: isDark ? '1px solid #343B4B' : '1px solid #E5E7EB',
                         borderRadius: '0.75rem',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                         fontSize: '12px',
-                        color: '#171923',
+                        color: isDark ? '#F9FAFB' : '#171923',
                       }}
+                      itemStyle={{ color: isDark ? '#F9FAFB' : '#171923' }}
+                      labelStyle={{ color: isDark ? '#A7AFBD' : '#626B7A', fontWeight: 600 }}
                     />
                     <Bar dataKey="views" name="Profile Views" fill="#4F46E5" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="clicks" name="Link Clicks" fill="#818CF8" radius={[4, 4, 0, 0]} />

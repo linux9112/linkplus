@@ -25,6 +25,7 @@ import {
   Globe,
 } from 'lucide-react';
 import { api } from '../../api/client';
+import { useTheme } from '../../context/ThemeContext';
 import type { Link as LinkItem } from '../../types/index';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
@@ -33,6 +34,8 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 const CHART_COLORS = ['#4F46E5', '#6366F1', '#818CF8', '#10B981', '#F59E0B', '#EC4899'];
 
 export const AnalyticsPage: React.FC = () => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [days, setDays] = useState<7 | 30 | 90>(30);
   const [loading, setLoading] = useState(true);
 
@@ -102,7 +105,7 @@ export const AnalyticsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-1 bg-[#EEF2FF] dark:bg-[#202430] p-1 rounded-xl border border-[#E5E7EB] dark:border-[#343B4B]">
+        <div className="flex items-center gap-1 bg-[#EEF2FF] dark:bg-[#171923] p-1 rounded-xl border border-[#E5E7EB] dark:border-[#343B4B]">
           {([7, 30, 90] as const).map((d) => (
             <button
               key={d}
@@ -110,7 +113,7 @@ export const AnalyticsPage: React.FC = () => {
               className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                 days === d
                   ? 'bg-[#4F46E5] text-white shadow-sm'
-                  : 'text-[#626B7A] dark:text-[#A7AFBD] hover:text-[#171923] dark:hover:text-white'
+                  : 'text-[#626B7A] dark:text-[#A7AFBD] hover:text-[#171923] dark:hover:text-[#F9FAFB]'
               }`}
             >
               Last {d} Days
@@ -167,23 +170,25 @@ export const AnalyticsPage: React.FC = () => {
                   <stop offset="95%" stopColor="#10B981" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+              <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#343B4B' : '#E5E7EB'} />
               <XAxis
                 dataKey="date"
-                stroke="#626B7A"
-                tick={{ fontSize: 11 }}
+                stroke={isDark ? '#A7AFBD' : '#626B7A'}
+                tick={{ fontSize: 11, fill: isDark ? '#A7AFBD' : '#626B7A' }}
                 tickFormatter={(v) => String(v).slice(5)}
               />
-              <YAxis stroke="#626B7A" tick={{ fontSize: 11 }} allowDecimals={false} />
+              <YAxis stroke={isDark ? '#A7AFBD' : '#626B7A'} tick={{ fontSize: 11, fill: isDark ? '#A7AFBD' : '#626B7A' }} allowDecimals={false} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#FFFFFF',
-                  borderColor: '#E5E7EB',
+                  backgroundColor: isDark ? '#202430' : '#FFFFFF',
+                  borderColor: isDark ? '#343B4B' : '#E5E7EB',
                   borderRadius: '12px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                   fontSize: '12px',
-                  color: '#171923',
+                  color: isDark ? '#F9FAFB' : '#171923',
                 }}
+                itemStyle={{ color: isDark ? '#F9FAFB' : '#171923' }}
+                labelStyle={{ color: isDark ? '#A7AFBD' : '#626B7A', fontWeight: 600 }}
               />
               <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
               <Area
@@ -237,13 +242,14 @@ export const AnalyticsPage: React.FC = () => {
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#FFFFFF',
-                      borderColor: '#E5E7EB',
+                      backgroundColor: isDark ? '#202430' : '#FFFFFF',
+                      borderColor: isDark ? '#343B4B' : '#E5E7EB',
                       borderRadius: '12px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                       fontSize: '12px',
-                      color: '#171923',
+                      color: isDark ? '#F9FAFB' : '#171923',
                     }}
+                    itemStyle={{ color: isDark ? '#F9FAFB' : '#171923' }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -262,18 +268,20 @@ export const AnalyticsPage: React.FC = () => {
             <div className="h-64 w-full pt-2">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={devices}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                  <XAxis dataKey="category" stroke="#626B7A" tick={{ fontSize: 12 }} />
-                  <YAxis stroke="#626B7A" allowDecimals={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#343B4B' : '#E5E7EB'} />
+                  <XAxis dataKey="category" stroke={isDark ? '#A7AFBD' : '#626B7A'} tick={{ fontSize: 12, fill: isDark ? '#A7AFBD' : '#626B7A' }} />
+                  <YAxis stroke={isDark ? '#A7AFBD' : '#626B7A'} tick={{ fontSize: 12, fill: isDark ? '#A7AFBD' : '#626B7A' }} allowDecimals={false} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#FFFFFF',
-                      borderColor: '#E5E7EB',
+                      backgroundColor: isDark ? '#202430' : '#FFFFFF',
+                      borderColor: isDark ? '#343B4B' : '#E5E7EB',
                       borderRadius: '12px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                       fontSize: '12px',
-                      color: '#171923',
+                      color: isDark ? '#F9FAFB' : '#171923',
                     }}
+                    itemStyle={{ color: isDark ? '#F9FAFB' : '#171923' }}
+                    labelStyle={{ color: isDark ? '#A7AFBD' : '#626B7A', fontWeight: 600 }}
                   />
                   <Bar dataKey="count" name="Events" fill="#4F46E5" radius={[6, 6, 0, 0]} />
                 </BarChart>

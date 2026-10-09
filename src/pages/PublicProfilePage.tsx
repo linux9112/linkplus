@@ -143,19 +143,19 @@ export const PublicProfilePage: React.FC = () => {
       <div className="fixed top-4 right-4 z-30 flex items-center gap-2">
         <button
           onClick={() => setQrModalOpen(true)}
-          className="p-2.5 rounded-full bg-white/80 dark:bg-black/40 hover:bg-white text-[#171923] dark:text-white backdrop-blur-md border border-[#E5E7EB] dark:border-white/15 shadow-sm transition-transform hover:scale-105 cursor-pointer"
+          className="p-2.5 rounded-full bg-white/80 dark:bg-black/60 hover:bg-white dark:hover:bg-black/80 text-[#171923] dark:text-white backdrop-blur-md border border-[#E5E7EB] dark:border-white/15 shadow-sm transition-transform hover:scale-105 cursor-pointer"
           title="View QR Code"
           aria-label="View QR Code"
         >
-          <QrCode className="w-4 h-4 text-[#4F46E5]" />
+          <QrCode className="w-4 h-4 text-[#4F46E5] dark:text-[#818CF8]" />
         </button>
         <button
           onClick={handleShare}
-          className="p-2.5 rounded-full bg-white/80 dark:bg-black/40 hover:bg-white text-[#171923] dark:text-white backdrop-blur-md border border-[#E5E7EB] dark:border-white/15 shadow-sm transition-transform hover:scale-105 cursor-pointer"
+          className="p-2.5 rounded-full bg-white/80 dark:bg-black/60 hover:bg-white dark:hover:bg-black/80 text-[#171923] dark:text-white backdrop-blur-md border border-[#E5E7EB] dark:border-white/15 shadow-sm transition-transform hover:scale-105 cursor-pointer"
           title="Share Profile"
           aria-label="Share Profile"
         >
-          {copied ? <Check className="w-4 h-4 text-[#15803D]" /> : <Share2 className="w-4 h-4 text-[#4F46E5]" />}
+          {copied ? <Check className="w-4 h-4 text-[#15803D]" /> : <Share2 className="w-4 h-4 text-[#4F46E5] dark:text-[#818CF8]" />}
         </button>
       </div>
 
@@ -223,7 +223,7 @@ export const PublicProfilePage: React.FC = () => {
               value={reportDetails}
               onChange={(e) => setReportDetails(e.target.value)}
               placeholder="Provide any context or the specific link title..."
-              className="w-full px-3.5 py-2.5 bg-white dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] rounded-xl text-sm text-[#171923] dark:text-white placeholder-[#9CA3AF] focus:outline-none focus:border-[#4F46E5]"
+              className="w-full px-3.5 py-2.5 bg-white dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] rounded-xl text-sm text-[#171923] dark:text-white placeholder-[#626B7A] dark:placeholder-[#A7AFBD] focus:outline-none focus:border-[#4F46E5]"
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">

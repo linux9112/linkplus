@@ -135,7 +135,7 @@ export const SignupPage: React.FC = () => {
                 Username
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#9CA3AF]">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#626B7A] dark:text-[#A7AFBD]">
                   <User className="w-4 h-4" />
                 </div>
                 <input
@@ -155,7 +155,7 @@ export const SignupPage: React.FC = () => {
                     fieldErrors.username
                       ? 'border-[#B91C1C] focus:border-[#B91C1C] focus:ring-2 focus:ring-[#FEF2F2]'
                       : 'border-[#E5E7EB] dark:border-[#343B4B] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#EEF2FF]'
-                  } rounded-xl text-[#171923] dark:text-white placeholder-[#9CA3AF] text-sm focus:outline-none transition-colors`}
+                  } rounded-xl text-[#171923] dark:text-white placeholder-[#626B7A] dark:placeholder-[#A7AFBD] text-sm focus:outline-none transition-colors`}
                 />
               </div>
               {fieldErrors.username ? (
@@ -179,7 +179,7 @@ export const SignupPage: React.FC = () => {
                 Email address
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#9CA3AF]">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#626B7A] dark:text-[#A7AFBD]">
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
@@ -199,7 +199,7 @@ export const SignupPage: React.FC = () => {
                     fieldErrors.email
                       ? 'border-[#B91C1C] focus:border-[#B91C1C] focus:ring-2 focus:ring-[#FEF2F2]'
                       : 'border-[#E5E7EB] dark:border-[#343B4B] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#EEF2FF]'
-                  } rounded-xl text-[#171923] dark:text-white placeholder-[#9CA3AF] text-sm focus:outline-none transition-colors`}
+                  } rounded-xl text-[#171923] dark:text-white placeholder-[#626B7A] dark:placeholder-[#A7AFBD] text-sm focus:outline-none transition-colors`}
                 />
               </div>
               {fieldErrors.email && (
@@ -219,7 +219,7 @@ export const SignupPage: React.FC = () => {
                 Password
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#9CA3AF]">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#626B7A] dark:text-[#A7AFBD]">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -239,7 +239,7 @@ export const SignupPage: React.FC = () => {
                     fieldErrors.password
                       ? 'border-[#B91C1C] focus:border-[#B91C1C] focus:ring-2 focus:ring-[#FEF2F2]'
                       : 'border-[#E5E7EB] dark:border-[#343B4B] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#EEF2FF]'
-                  } rounded-xl text-[#171923] dark:text-white placeholder-[#9CA3AF] text-sm focus:outline-none transition-colors`}
+                  } rounded-xl text-[#171923] dark:text-white placeholder-[#626B7A] dark:placeholder-[#A7AFBD] text-sm focus:outline-none transition-colors`}
                 />
               </div>
               {fieldErrors.password ? (

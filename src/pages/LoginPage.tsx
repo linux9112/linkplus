@@ -77,9 +77,9 @@ export const LoginPage: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-5 p-3.5 rounded-xl bg-[#FEF2F2] border border-[#FEE2E2] text-[#B91C1C] text-sm flex items-start gap-2.5"
+              className="mb-5 p-3.5 rounded-xl bg-[#FEF2F2] dark:bg-red-950/40 border border-[#FEE2E2] dark:border-red-900/40 text-[#B91C1C] dark:text-red-300 text-sm flex items-start gap-2.5"
             >
-              <AlertCircle className="w-5 h-5 text-[#B91C1C] shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-[#B91C1C] dark:text-red-400 shrink-0 mt-0.5" />
               <span>{error}</span>
             </motion.div>
           )}
@@ -94,7 +94,7 @@ export const LoginPage: React.FC = () => {
                 Email or Username
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#9CA3AF]">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#626B7A] dark:text-[#A7AFBD]">
                   <Mail className="w-4 h-4" />
                 </div>
                 <input
@@ -108,7 +108,7 @@ export const LoginPage: React.FC = () => {
                     if (error) setError(null);
                   }}
                   placeholder="name@example.com or username"
-                  className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#EEF2FF] rounded-xl text-[#171923] dark:text-white placeholder-[#9CA3AF] text-sm focus:outline-none transition-colors"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#EEF2FF] rounded-xl text-[#171923] dark:text-white placeholder-[#626B7A] dark:placeholder-[#A7AFBD] text-sm focus:outline-none transition-colors"
                   required
                 />
               </div>
@@ -131,7 +131,7 @@ export const LoginPage: React.FC = () => {
                 </Link>
               </div>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#9CA3AF]">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#626B7A] dark:text-[#A7AFBD]">
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -145,7 +145,7 @@ export const LoginPage: React.FC = () => {
                     if (error) setError(null);
                   }}
                   placeholder="••••••••••••"
-                  className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#EEF2FF] rounded-xl text-[#171923] dark:text-white placeholder-[#9CA3AF] text-sm focus:outline-none transition-colors"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#EEF2FF] rounded-xl text-[#171923] dark:text-white placeholder-[#626B7A] dark:placeholder-[#A7AFBD] text-sm focus:outline-none transition-colors"
                   required
                 />
               </div>

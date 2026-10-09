@@ -404,7 +404,7 @@ export const LinksPage: React.FC = () => {
                   className={`bg-white dark:bg-[#202430] border rounded-2xl p-4 shadow-card transition-all ${
                     link.is_pinned
                       ? 'border-[#4F46E5] dark:border-[#6366F1]'
-                      : 'border-[#E5E7EB] dark:border-[#343B4B] hover:border-slate-300'
+                      : 'border-[#E5E7EB] dark:border-[#343B4B] hover:border-[#626B7A]'
                   } ${!link.is_active || link.is_hidden ? 'opacity-65' : ''}`}
                 >
                   <div className="flex items-start gap-3">
@@ -428,17 +428,17 @@ export const LinksPage: React.FC = () => {
                           {link.title}
                         </h3>
                         {link.is_pinned && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#EEF2FF] text-[#4F46E5] border border-[#4F46E5]/20">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#EEF2FF] text-[#4F46E5] dark:bg-[#272D3A] dark:text-[#6366F1] border border-[#4F46E5]/20">
                             Pinned
                           </span>
                         )}
                         {link.is_featured && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-purple-50 text-purple-700 border border-purple-200">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-purple-50 text-purple-700 dark:bg-purple-950/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40">
                             Featured
                           </span>
                         )}
                         {link.is_hidden && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-50 text-[#B45309] border border-amber-200">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-50 text-[#B45309] dark:bg-amber-950/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40">
                             Hidden
                           </span>
                         )}
@@ -454,7 +454,7 @@ export const LinksPage: React.FC = () => {
                           href={dest}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-[#626B7A] hover:text-[#4F46E5] truncate max-w-md flex items-center gap-1"
+                          className="text-xs text-[#626B7A] hover:text-[#4F46E5] dark:text-[#A7AFBD] dark:hover:text-[#6366F1] truncate max-w-md flex items-center gap-1"
                         >
                           <span className="truncate">{dest}</span>
                           <ExternalLink className="w-3 h-3 shrink-0" />
@@ -473,7 +473,7 @@ export const LinksPage: React.FC = () => {
                             {clicks.toLocaleString()} {clicks === 1 ? 'click' : 'clicks'}
                           </span>
                           {(startStr || endStr) && (
-                            <span className="inline-flex items-center gap-1 text-[#B45309]">
+                            <span className="inline-flex items-center gap-1 text-[#B45309] dark:text-amber-400">
                               <Calendar className="w-3.5 h-3.5" />
                               Scheduled
                             </span>
@@ -485,7 +485,7 @@ export const LinksPage: React.FC = () => {
                             onClick={() => handleTogglePin(link)}
                             className={`p-1.5 rounded-lg text-xs transition-colors ${
                               link.is_pinned
-                                ? 'bg-[#EEF2FF] text-[#4F46E5]'
+                                ? 'bg-[#EEF2FF] text-[#4F46E5] dark:bg-[#272D3A] dark:text-[#6366F1]'
                                 : 'text-[#626B7A] hover:bg-slate-100 dark:hover:bg-[#272D3A]'
                             }`}
                             title={link.is_pinned ? 'Unpin link' : 'Pin link to top'}
@@ -496,7 +496,7 @@ export const LinksPage: React.FC = () => {
                             onClick={() => handleToggleHide(link)}
                             className={`p-1.5 rounded-lg text-xs transition-colors ${
                               link.is_hidden
-                                ? 'bg-amber-50 text-[#B45309]'
+                                ? 'bg-amber-50 text-[#B45309] dark:bg-amber-950/30 dark:text-amber-300'
                                 : 'text-[#626B7A] hover:bg-slate-100 dark:hover:bg-[#272D3A]'
                             }`}
                             title={link.is_hidden ? 'Unhide link' : 'Hide link without deleting'}
@@ -530,7 +530,7 @@ export const LinksPage: React.FC = () => {
                           </button>
                           <button
                             onClick={() => handleDelete(link)}
-                            className="p-1.5 rounded-lg text-[#626B7A] hover:bg-red-50 hover:text-[#B91C1C]"
+                            className="p-1.5 rounded-lg text-[#626B7A] hover:bg-red-50 hover:text-[#B91C1C] dark:hover:bg-red-950/30 dark:hover:text-red-400"
                             title="Delete link"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -547,7 +547,7 @@ export const LinksPage: React.FC = () => {
                       onClick={() => handleToggleActive(link)}
                       title={link.is_active ? 'Disable link' : 'Enable link'}
                       className={`mt-1 relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                        link.is_active ? 'bg-[#15803D]' : 'bg-slate-300 dark:bg-slate-700'
+                        link.is_active ? 'bg-[#15803D]' : 'bg-[#E5E7EB] dark:bg-[#343B4B]'
                       }`}
                     >
                       <span
@@ -592,7 +592,7 @@ export const LinksPage: React.FC = () => {
       >
         <form onSubmit={handleSaveLink} className="space-y-4">
           {formError && (
-            <div className="p-3.5 rounded-xl bg-red-950/60 border border-red-800 text-xs text-red-300">
+            <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-300">
               {formError}
             </div>
           )}
@@ -623,7 +623,7 @@ export const LinksPage: React.FC = () => {
 
           {/* Icon Selector */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[#626B7A] dark:text-[#A7AFBD] mb-2">
               Icon
             </label>
             <div className="flex flex-wrap gap-2">
@@ -634,8 +634,8 @@ export const LinksPage: React.FC = () => {
                   onClick={() => setForm({ ...form, icon: ic })}
                   className={`p-2.5 rounded-xl border flex items-center gap-1.5 text-xs capitalize transition-all ${
                     form.icon === ic
-                      ? 'bg-indigo-600/25 border-indigo-500 text-white'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                      ? 'bg-[#EEF2FF] border-[#4F46E5] text-[#4F46E5] dark:bg-[#1E1B4B] dark:border-[#6366F1] dark:text-[#818CF8]'
+                      : 'bg-white dark:bg-[#171923] border-[#E5E7EB] dark:border-[#343B4B] text-[#424B5A] dark:text-[#A7AFBD] hover:bg-slate-50 dark:hover:bg-[#272D3A]'
                   }`}
                 >
                   {renderLinkIcon(ic)}
@@ -647,41 +647,41 @@ export const LinksPage: React.FC = () => {
 
           {/* Quick Flags */}
           <div className="flex flex-wrap gap-4 pt-1">
-            <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-xs text-[#424B5A] dark:text-[#D1D5DB] cursor-pointer">
               <input
                 type="checkbox"
                 checked={form.is_pinned}
                 onChange={(e) => setForm({ ...form, is_pinned: e.target.checked })}
-                className="rounded border-slate-700 bg-slate-900 text-indigo-600"
+                className="rounded border-[#E5E7EB] dark:border-[#343B4B] text-[#4F46E5] focus:ring-[#4F46E5]"
               />
               <span>Pin to top of profile</span>
             </label>
-            <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-xs text-[#424B5A] dark:text-[#D1D5DB] cursor-pointer">
               <input
                 type="checkbox"
                 checked={form.is_featured}
                 onChange={(e) => setForm({ ...form, is_featured: e.target.checked })}
-                className="rounded border-slate-700 bg-slate-900 text-indigo-600"
+                className="rounded border-[#E5E7EB] dark:border-[#343B4B] text-[#4F46E5] focus:ring-[#4F46E5]"
               />
               <span>Featured highlight border</span>
             </label>
-            <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-xs text-[#424B5A] dark:text-[#D1D5DB] cursor-pointer">
               <input
                 type="checkbox"
                 checked={form.is_hidden}
                 onChange={(e) => setForm({ ...form, is_hidden: e.target.checked })}
-                className="rounded border-slate-700 bg-slate-900 text-indigo-600"
+                className="rounded border-[#E5E7EB] dark:border-[#343B4B] text-[#4F46E5] focus:ring-[#4F46E5]"
               />
               <span>Hide temporarily without deleting</span>
             </label>
           </div>
 
           {/* Advanced Link Options Accordion */}
-          <div className="pt-2 border-t border-slate-800">
+          <div className="pt-2 border-t border-[#E5E7EB] dark:border-[#343B4B]">
             <button
               type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="text-xs font-semibold text-indigo-400 hover:text-indigo-300"
+              className="text-xs font-semibold text-[#4F46E5] dark:text-[#818CF8] hover:underline"
             >
               {showAdvanced
                 ? '− Hide Advanced Options (Scheduling, Categories, Media Embeds, UTM)'
@@ -689,7 +689,7 @@ export const LinksPage: React.FC = () => {
             </button>
 
             {showAdvanced && (
-              <div className="mt-4 space-y-4 bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+              <div className="mt-4 space-y-4 bg-[#F7F8FA] dark:bg-[#171923] p-4 rounded-xl border border-[#E5E7EB] dark:border-[#343B4B]">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input
                     label="Category / Group"
@@ -759,7 +759,7 @@ export const LinksPage: React.FC = () => {
             )}
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+          <div className="flex justify-end gap-2 pt-3 border-t border-[#E5E7EB] dark:border-[#343B4B]">
             <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>

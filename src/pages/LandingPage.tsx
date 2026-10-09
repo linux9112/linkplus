@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import DatabaseSetupBanner from '../components/ui/DatabaseSetupBanner';
+import ThemeToggle from '../components/ui/ThemeToggle';
 
 export const LandingPage: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -80,8 +81,9 @@ export const LandingPage: React.FC = () => {
             </a>
           </nav>
 
-          {/* Auth Action Buttons */}
+          {/* Auth Action Buttons & Theme */}
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             {isAuthenticated ? (
               <>
                 <Link
@@ -256,7 +258,7 @@ export const LandingPage: React.FC = () => {
 
                   {/* Profile Name & Bio */}
                   <h3 className="text-lg font-bold text-slate-900 tracking-tight">@dindayal</h3>
-                  <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                  <p className="text-xs font-semibold text-slate-600 mt-0.5">
                     Student • Creator • Dreamer
                   </p>
 
@@ -352,7 +354,7 @@ export const LandingPage: React.FC = () => {
                   </div>
 
                   {/* Bottom subtle indicator */}
-                  <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-semibold">
+                  <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-600 font-semibold">
                     <span>Powered by LinkPlus</span>
                     <span className="inline-flex items-center gap-1 text-[#4F46E5]">
                       <QrCode className="w-3 h-3" />
@@ -448,7 +450,7 @@ export const LandingPage: React.FC = () => {
           </div>
           <div className="text-center pb-6 border-b border-slate-100">
             <h3 className="text-2xl font-black text-slate-900">100% Free</h3>
-            <p className="text-xs text-slate-500 mt-1">Full-featured self-hosted MySQL platform</p>
+            <p className="text-xs text-slate-600 mt-1">Full-featured self-hosted MySQL platform</p>
           </div>
           <ul className="py-6 space-y-3.5 text-sm text-slate-700">
             {[
@@ -514,7 +516,7 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* Footer / Resources */}
-      <footer id="resources" className="mt-auto border-t border-slate-200 bg-white py-10 px-4 sm:px-8 text-xs text-slate-500">
+      <footer id="resources" className="mt-auto border-t border-slate-200 bg-white py-10 px-4 sm:px-8 text-xs text-slate-600">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <img src="/logo.jpg" alt="LinkPlus Logo" className="w-6 h-6 rounded-md object-cover" />
@@ -560,7 +562,7 @@ export const LandingPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900">Live Demo Profile</h3>
-                  <p className="text-xs text-slate-500">Preview what your visitors will experience</p>
+                  <p className="text-xs text-slate-600">Preview what your visitors will experience</p>
                 </div>
               </div>
 

@@ -240,7 +240,7 @@ export const ProfilePage: React.FC = () => {
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 placeholder="Share a short bio about what you do..."
-                className="w-full px-3.5 py-2.5 bg-white dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] rounded-xl text-sm text-[#171923] dark:text-[#F9FAFB] placeholder-[#626B7A] focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#EEF2FF]"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] rounded-xl text-sm text-[#171923] dark:text-[#F9FAFB] placeholder-[#626B7A] dark:placeholder-[#A7AFBD] focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#EEF2FF]"
               />
             </div>
 
@@ -249,7 +249,9 @@ export const ProfilePage: React.FC = () => {
               <div className="flex items-center gap-3">
                 <div
                   className={`p-2.5 rounded-xl ${
-                    isPublic ? 'bg-emerald-100 text-[#15803D]' : 'bg-amber-100 text-[#B45309]'
+                    isPublic
+                      ? 'bg-emerald-100 text-[#15803D] dark:bg-emerald-950/30 dark:text-[#86EFAC]'
+                      : 'bg-amber-100 text-[#B45309] dark:bg-amber-950/30 dark:text-[#FCD34D]'
                   }`}
                 >
                   {isPublic ? <Globe className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
@@ -271,7 +273,7 @@ export const ProfilePage: React.FC = () => {
                 aria-checked={isPublic}
                 onClick={() => setIsPublic(!isPublic)}
                 className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                  isPublic ? 'bg-[#4F46E5]' : 'bg-slate-300 dark:bg-slate-700'
+                  isPublic ? 'bg-[#4F46E5]' : 'bg-[#E5E7EB] dark:bg-[#343B4B]'
                 }`}
               >
                 <span

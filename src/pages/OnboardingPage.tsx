@@ -148,7 +148,7 @@ export const OnboardingPage: React.FC = () => {
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                   placeholder="Tell visitors what you build or create..."
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] rounded-xl text-sm text-[#171923] dark:text-white placeholder-[#9CA3AF] focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#EEF2FF]"
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] rounded-xl text-sm text-[#171923] dark:text-white placeholder-[#626B7A] dark:placeholder-[#A7AFBD] focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#EEF2FF]"
                 />
               </div>
               <div className="p-4 rounded-xl bg-[#F7F8FA] dark:bg-[#272D3A] border border-[#E5E7EB] dark:border-[#343B4B] flex flex-col sm:flex-row items-center gap-4">

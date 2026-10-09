@@ -144,7 +144,7 @@ export const ResetPasswordPage: React.FC = () => {
                   New Password
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#9CA3AF]">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#626B7A] dark:text-[#A7AFBD]">
                     <Lock className="w-4 h-4" />
                   </div>
                   <input
@@ -158,7 +158,7 @@ export const ResetPasswordPage: React.FC = () => {
                       if (error) setError(null);
                     }}
                     placeholder="••••••••••••"
-                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#EEF2FF] rounded-xl text-[#171923] dark:text-white placeholder-[#9CA3AF] text-sm focus:outline-none transition-colors"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#EEF2FF] rounded-xl text-[#171923] dark:text-white placeholder-[#626B7A] dark:placeholder-[#A7AFBD] text-sm focus:outline-none transition-colors"
                     required
                   />
                 </div>
@@ -173,7 +173,7 @@ export const ResetPasswordPage: React.FC = () => {
                   Confirm New Password
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#9CA3AF]">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#626B7A] dark:text-[#A7AFBD]">
                     <Lock className="w-4 h-4" />
                   </div>
                   <input
@@ -187,7 +187,7 @@ export const ResetPasswordPage: React.FC = () => {
                       if (error) setError(null);
                     }}
                     placeholder="••••••••••••"
-                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#EEF2FF] rounded-xl text-[#171923] dark:text-white placeholder-[#9CA3AF] text-sm focus:outline-none transition-colors"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#EEF2FF] rounded-xl text-[#171923] dark:text-white placeholder-[#626B7A] dark:placeholder-[#A7AFBD] text-sm focus:outline-none transition-colors"
                     required
                   />
                 </div>

@@ -332,7 +332,7 @@ export const QRStudioPage: React.FC = () => {
                 className={`p-3 rounded-xl border text-left transition-all ${
                   presetName === preset.name
                     ? 'border-[#4F46E5] ring-2 ring-[#4F46E5]/20 bg-[#EEF2FF]/60 dark:bg-[#272D3A]'
-                    : 'border-[#E5E7EB] dark:border-[#343B4B] bg-white dark:bg-[#202430] hover:border-slate-300'
+                    : 'border-[#E5E7EB] dark:border-[#343B4B] bg-white dark:bg-[#202430] hover:border-[#626B7A]'
                 }`}
               >
                 <div className="flex items-center gap-2 mb-2">
@@ -346,7 +346,7 @@ export const QRStudioPage: React.FC = () => {
                   />
                   <span
                     style={{ backgroundColor: preset.backgroundColor }}
-                    className="w-6 h-6 rounded-lg border border-slate-300 dark:border-slate-700 shrink-0"
+                    className="w-6 h-6 rounded-lg border border-[#E5E7EB] dark:border-[#343B4B] shrink-0"
                   />
                 </div>
                 <p className="text-xs font-bold text-[#171923] dark:text-[#F9FAFB] truncate">{preset.name}</p>
@@ -363,7 +363,7 @@ export const QRStudioPage: React.FC = () => {
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#626B7A] dark:text-[#A7AFBD] mb-1.5">
                   Foreground Color
                 </label>
                 <div className="flex items-center gap-2.5">
@@ -371,7 +371,7 @@ export const QRStudioPage: React.FC = () => {
                     type="color"
                     value={foregroundColor}
                     onChange={(e) => setForegroundColor(e.target.value)}
-                    className="w-11 h-10 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer"
+                    className="w-11 h-10 rounded-xl bg-white dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] cursor-pointer"
                   />
                   <Input
                     value={foregroundColor}
@@ -381,7 +381,7 @@ export const QRStudioPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#626B7A] dark:text-[#A7AFBD] mb-1.5">
                   Background Color
                 </label>
                 <div className="flex items-center gap-2.5">
@@ -390,7 +390,7 @@ export const QRStudioPage: React.FC = () => {
                     value={backgroundColor}
                     onChange={(e) => setBackgroundColor(e.target.value)}
                     disabled={transparentBackground}
-                    className="w-11 h-10 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer disabled:opacity-40"
+                    className="w-11 h-10 rounded-xl bg-white dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] cursor-pointer disabled:opacity-40"
                   />
                   <Input
                     value={backgroundColor}
@@ -402,53 +402,53 @@ export const QRStudioPage: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-6 pt-2">
-              <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+              <label className="flex items-center gap-2 text-xs text-[#424B5A] dark:text-[#D1D5DB] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={useGradient}
                   onChange={(e) => setUseGradient(e.target.checked)}
-                  className="rounded border-slate-700 bg-slate-900 text-indigo-600"
+                  className="rounded border-[#E5E7EB] dark:border-[#343B4B] text-[#4F46E5] focus:ring-[#4F46E5]"
                 />
                 <span>Enable Foreground Gradient</span>
               </label>
 
-              <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+              <label className="flex items-center gap-2 text-xs text-[#424B5A] dark:text-[#D1D5DB] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={transparentBackground}
                   onChange={(e) => setTransparentBackground(e.target.checked)}
-                  className="rounded border-slate-700 bg-slate-900 text-indigo-600"
+                  className="rounded border-[#E5E7EB] dark:border-[#343B4B] text-[#4F46E5] focus:ring-[#4F46E5]"
                 />
                 <span>Transparent Background (PNG/SVG Export)</span>
               </label>
             </div>
 
             {useGradient && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-slate-950/70 border border-slate-800">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-[#F7F8FA] dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B]">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">Start Color</label>
+                  <label className="block text-xs font-semibold text-[#626B7A] dark:text-[#A7AFBD] mb-1">Start Color</label>
                   <input
                     type="color"
                     value={gradColor1}
                     onChange={(e) => setGradColor1(e.target.value)}
-                    className="w-full h-10 rounded-lg bg-slate-900 border border-slate-800 cursor-pointer"
+                    className="w-full h-10 rounded-lg bg-white dark:bg-[#202430] border border-[#E5E7EB] dark:border-[#343B4B] cursor-pointer"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">End Color</label>
+                  <label className="block text-xs font-semibold text-[#626B7A] dark:text-[#A7AFBD] mb-1">End Color</label>
                   <input
                     type="color"
                     value={gradColor2}
                     onChange={(e) => setGradColor2(e.target.value)}
-                    className="w-full h-10 rounded-lg bg-slate-900 border border-slate-800 cursor-pointer"
+                    className="w-full h-10 rounded-lg bg-white dark:bg-[#202430] border border-[#E5E7EB] dark:border-[#343B4B] cursor-pointer"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">Gradient Direction</label>
+                  <label className="block text-xs font-semibold text-[#626B7A] dark:text-[#A7AFBD] mb-1">Gradient Direction</label>
                   <select
                     value={gradType}
                     onChange={(e) => setGradType(e.target.value as 'linear' | 'radial')}
-                    className="w-full h-10 px-3 bg-slate-900 border border-slate-800 rounded-lg text-xs text-white"
+                    className="w-full h-10 px-3 bg-white dark:bg-[#202430] border border-[#E5E7EB] dark:border-[#343B4B] rounded-lg text-xs text-[#171923] dark:text-[#F9FAFB]"
                   >
                     <option value="linear">Linear Diagonal</option>
                     <option value="radial">Radial Center</option>
@@ -463,7 +463,7 @@ export const QRStudioPage: React.FC = () => {
         <Card title="Pattern Geometry & Center Logo" subtitle="Customize module dots, finder corners, error correction, and center badge">
           <div className="space-y-5">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#626B7A] dark:text-[#A7AFBD] mb-2">
                 Module / Dot Style
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
@@ -472,10 +472,10 @@ export const QRStudioPage: React.FC = () => {
                     key={style}
                     type="button"
                     onClick={() => setDotStyle(style)}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold capitalize border ${
+                    className={`py-2 px-3 rounded-xl text-xs font-semibold capitalize border transition-all ${
                       dotStyle === style
-                        ? 'bg-indigo-600/25 border-indigo-500 text-white'
-                        : 'bg-slate-950 border-slate-800 text-slate-400'
+                        ? 'bg-[#EEF2FF] border-[#4F46E5] text-[#4F46E5] dark:bg-[#1E1B4B] dark:border-[#6366F1] dark:text-[#818CF8]'
+                        : 'bg-white dark:bg-[#171923] border-[#E5E7EB] dark:border-[#343B4B] text-[#424B5A] dark:text-[#A7AFBD] hover:bg-slate-50 dark:hover:bg-[#272D3A]'
                     }`}
                   >
                     {style}
@@ -485,7 +485,7 @@ export const QRStudioPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#626B7A] dark:text-[#A7AFBD] mb-2">
                 Corner Finder-Pattern Style
               </label>
               <div className="grid grid-cols-3 gap-2.5">
@@ -494,10 +494,10 @@ export const QRStudioPage: React.FC = () => {
                     key={cStyle}
                     type="button"
                     onClick={() => setCornerStyle(cStyle)}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold capitalize border ${
+                    className={`py-2 px-3 rounded-xl text-xs font-semibold capitalize border transition-all ${
                       cornerStyle === cStyle
-                        ? 'bg-indigo-600/25 border-indigo-500 text-white'
-                        : 'bg-slate-950 border-slate-800 text-slate-400'
+                        ? 'bg-[#EEF2FF] border-[#4F46E5] text-[#4F46E5] dark:bg-[#1E1B4B] dark:border-[#6366F1] dark:text-[#818CF8]'
+                        : 'bg-white dark:bg-[#171923] border-[#E5E7EB] dark:border-[#343B4B] text-[#424B5A] dark:text-[#A7AFBD] hover:bg-slate-50 dark:hover:bg-[#272D3A]'
                     }`}
                   >
                     {cStyle}
@@ -507,10 +507,10 @@ export const QRStudioPage: React.FC = () => {
             </div>
 
             {/* Center Logo / Avatar Controls */}
-            <div className="pt-2 border-t border-slate-800 space-y-3">
+            <div className="pt-2 border-t border-[#E5E7EB] dark:border-[#343B4B] space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                  <ImageIcon className="w-3.5 h-3.5 text-indigo-400" />
+                <label className="text-xs font-semibold uppercase tracking-wider text-[#626B7A] dark:text-[#A7AFBD] flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-[#4F46E5] dark:text-[#6366F1]" />
                   <span>Center Logo / Avatar URL (Optional)</span>
                 </label>
                 <div className="flex items-center gap-2">
@@ -520,20 +520,20 @@ export const QRStudioPage: React.FC = () => {
                       setLogoUrl('/logo.jpg');
                       setErrorCorrectionLevel('H');
                     }}
-                    className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+                    className="text-xs text-[#4F46E5] dark:text-[#818CF8] hover:underline font-medium"
                   >
                     Use LinkPlus Logo
                   </button>
                   {profile?.avatar_url && (
                     <>
-                      <span className="text-slate-600">•</span>
+                      <span className="text-[#626B7A] dark:text-[#A7AFBD]">•</span>
                       <button
                         type="button"
                         onClick={() => {
                           setLogoUrl(profile.avatar_url || '');
                           setErrorCorrectionLevel('H');
                         }}
-                        className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+                        className="text-xs text-[#4F46E5] dark:text-[#818CF8] hover:underline font-medium"
                       >
                         Use My Avatar
                       </button>
@@ -553,7 +553,7 @@ export const QRStudioPage: React.FC = () => {
 
               {logoUrl && (
                 <div>
-                  <div className="flex justify-between text-xs text-slate-400 mb-1">
+                  <div className="flex justify-between text-xs text-[#626B7A] dark:text-[#A7AFBD] mb-1">
                     <span>Center Logo Size (Clamped to preserve Level H scannability)</span>
                     <span>{Math.round(logoSizeRatio * 100)}%</span>
                   </div>
@@ -571,9 +571,9 @@ export const QRStudioPage: React.FC = () => {
             </div>
 
             {/* Margin, Resolution & Error Correction */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-800">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-[#E5E7EB] dark:border-[#343B4B]">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#626B7A] dark:text-[#A7AFBD] mb-1.5">
                   Quiet Zone Margin ({margin})
                 </label>
                 <input
@@ -587,13 +587,13 @@ export const QRStudioPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#626B7A] dark:text-[#A7AFBD] mb-1.5">
                   Export Resolution
                 </label>
                 <select
                   value={resolution}
                   onChange={(e) => setResolution(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+                  className="w-full px-3 py-2 bg-white dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] rounded-xl text-xs text-[#171923] dark:text-[#F9FAFB]"
                 >
                   <option value={512}>512 × 512 px (Web)</option>
                   <option value={1024}>1024 × 1024 px (HD)</option>
@@ -602,13 +602,13 @@ export const QRStudioPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#626B7A] dark:text-[#A7AFBD] mb-1.5">
                   Error Correction
                 </label>
                 <select
                   value={errorCorrectionLevel}
                   onChange={(e) => setErrorCorrectionLevel(e.target.value as any)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+                  className="w-full px-3 py-2 bg-white dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] rounded-xl text-xs text-[#171923] dark:text-[#F9FAFB]"
                 >
                   <option value="H">High (H - 30% recovery)</option>
                   <option value="Q">Quartile (Q - 25%)</option>
@@ -627,7 +627,7 @@ export const QRStudioPage: React.FC = () => {
           title="Live Scannable QR Preview"
           subtitle="Test with your smartphone camera right now"
           action={
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/20 text-indigo-300">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#EEF2FF] text-[#4F46E5] dark:bg-[#1E1B4B] dark:text-[#818CF8] border border-[#4F46E5]/20">
               <Sparkles className="w-3 h-3" />
               {presetName}
             </span>

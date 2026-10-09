@@ -324,8 +324,8 @@ export const AdminPage: React.FC = () => {
                       <span
                         className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                           r.status === 'pending'
-                            ? 'bg-[#FEF3C7] text-[#B45309]'
-                            : 'bg-[#DCFCE7] text-[#15803D]'
+                            ? 'bg-[#FEF3C7] text-[#B45309] dark:bg-[#B45309]/20 dark:text-[#FCD34D]'
+                            : 'bg-[#DCFCE7] text-[#15803D] dark:bg-[#15803D]/20 dark:text-[#86EFAC]'
                         }`}
                       >
                         {r.status}
@@ -459,7 +459,7 @@ export const AdminPage: React.FC = () => {
                     allow_registrations: e.target.checked,
                   })
                 }
-                className="rounded border-[#E5E7EB] text-[#4F46E5] focus:ring-[#EEF2FF] w-5 h-5 cursor-pointer"
+                className="rounded border-[#E5E7EB] dark:border-[#343B4B] text-[#4F46E5] focus:ring-[#EEF2FF] dark:focus:ring-[#272D3A] w-5 h-5 cursor-pointer"
               />
             </label>
 
@@ -477,7 +477,7 @@ export const AdminPage: React.FC = () => {
                     maintenance_mode: e.target.checked,
                   })
                 }
-                className="rounded border-[#E5E7EB] text-[#4F46E5] focus:ring-[#EEF2FF] w-5 h-5 cursor-pointer"
+                className="rounded border-[#E5E7EB] dark:border-[#343B4B] text-[#4F46E5] focus:ring-[#EEF2FF] dark:focus:ring-[#272D3A] w-5 h-5 cursor-pointer"
               />
             </label>
 

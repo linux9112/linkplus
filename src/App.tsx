@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './components/ui/Toast';
 import LoadingSpinner from './components/ui/LoadingSpinner';
@@ -37,8 +38,9 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   return (
-    <ToastProvider>
-      <AuthProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <AuthProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<LandingPage />} />
@@ -87,6 +89,7 @@ function App() {
         </BrowserRouter>
       </AuthProvider>
     </ToastProvider>
+    </ThemeProvider>
   );
 }
 
