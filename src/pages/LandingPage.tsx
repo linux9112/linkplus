@@ -248,9 +248,9 @@ export const LandingPage: React.FC = () => {
                   {/* Creator Photo Avatar */}
                   <div className="relative mx-auto w-20 h-20 mb-3">
                     <img
-                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=face"
-                      alt="Creator Avatar"
-                      className="w-20 h-20 rounded-full object-cover border-3 border-white shadow-md mx-auto"
+                      src="/avatar.png"
+                      alt="Dindayal"
+                      className="w-20 h-20 rounded-full object-cover object-[center_35%] border-3 border-white shadow-md mx-auto"
                     />
                   </div>
 
