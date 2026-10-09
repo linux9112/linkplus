@@ -86,10 +86,10 @@ export const ProfilePage: React.FC = () => {
 
   // Theme & Appearance fields state
   const [preset, setPreset] = useState('default');
-  const [backgroundType, setBackgroundType] = useState<'color' | 'gradient' | 'image'>('gradient');
+  const [backgroundType, setBackgroundType] = useState<'color' | 'gradient' | 'image' | 'pattern'>('gradient');
   const [backgroundValue, setBackgroundValue] = useState(THEME_PRESETS.default.backgroundValue);
-  const [buttonShape, setButtonShape] = useState<'rounded' | 'rounded-lg' | 'rounded-full' | 'sharp'>('rounded-full');
-  const [buttonStyle, setButtonStyle] = useState<'solid' | 'glass' | 'outline' | 'brutal'>('glass');
+  const [buttonShape, setButtonShape] = useState<'rounded' | 'rounded-lg' | 'rounded-2xl' | 'rounded-full' | 'sharp' | 'brutal'>('rounded-full');
+  const [buttonStyle, setButtonStyle] = useState<'solid' | 'glass' | 'outline' | 'brutal' | 'gradient' | 'shadow' | 'minimal'>('glass');
   const [buttonColor, setButtonColor] = useState('');
   const [textColor, setTextColor] = useState('#171923');
   const [fontFamily, setFontFamily] = useState('Inter');

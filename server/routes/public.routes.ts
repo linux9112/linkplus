@@ -90,6 +90,51 @@ router.get('/avatar/:userId', async (req: Request, res: Response, next: NextFunc
 });
 
 /**
+ * GET /api/public/cover/:userId
+ * Serve the user's uploaded cover photo directly from MySQL.
+ */
+router.get('/cover/:userId', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const userId = String(req.params.userId || '').trim();
+    if (!userId) {
+      res.status(404).json({ error: 'Cover not found' });
+      return;
+    }
+
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+    });
+
+    const themeSettings =
+      profile && typeof profile.themeSettings === 'object' && profile.themeSettings !== null
+        ? (profile.themeSettings as Record<string, any>)
+        : null;
+
+    const dataUri = themeSettings?.cover_data_url;
+    if (!dataUri || typeof dataUri !== 'string') {
+      res.status(404).json({ error: 'Cover not found' });
+      return;
+    }
+
+    const match = /^data:image\/(jpeg|jpg|png|webp|gif);base64,([A-Za-z0-9+/=\s]+)$/i.exec(dataUri);
+    if (!match) {
+      res.status(404).json({ error: 'Invalid cover data' });
+      return;
+    }
+
+    const format = match[1].toLowerCase() === 'jpg' ? 'jpeg' : match[1].toLowerCase();
+    const buffer = Buffer.from(match[2].replace(/\s/g, ''), 'base64');
+
+    res.setHeader('Content-Type', `image/${format}`);
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.status(200).send(buffer);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /api/public/:username
  * Resolve public profile, active/scheduled links, and record privacy-safe analytics event.
  */

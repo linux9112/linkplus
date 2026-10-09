@@ -19,9 +19,9 @@ export interface Profile {
   avatar_url: string | null;
   theme_settings: {
     preset?: string;
-    background_type?: 'color' | 'gradient' | 'image';
+    background_type?: 'color' | 'gradient' | 'image' | 'pattern';
     background_value?: string;
-    button_shape?: 'rounded' | 'rounded-lg' | 'rounded-full' | 'sharp';
+    button_shape?: 'rounded' | 'rounded-lg' | 'rounded-full' | 'sharp' | 'rounded-2xl' | 'brutal';
     font_family?: string;
     [key: string]: unknown;
   };

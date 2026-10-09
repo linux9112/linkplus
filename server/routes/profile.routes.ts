@@ -129,7 +129,19 @@ router.put('/', requireAuth, async (req: Request, res: Response, next: NextFunct
       }
     }
 
-    if (themeSettingsRaw !== undefined || avatarUrlRaw !== undefined) {
+    const coverDataUrl = themeSettingsRaw?.cover_data_url || body.cover_data_url;
+    if (coverDataUrl !== undefined) {
+      const trimmedCover = coverDataUrl ? String(coverDataUrl).trim() : '';
+      if (!trimmedCover) {
+        delete existingTheme.cover_data_url;
+        delete existingTheme.cover_url;
+      } else if (DATA_IMAGE_REGEX.test(trimmedCover)) {
+        existingTheme.cover_data_url = trimmedCover;
+        existingTheme.cover_url = `/api/public/cover/${req.user!.id}?v=${Date.now()}`;
+      }
+    }
+
+    if (themeSettingsRaw !== undefined || avatarUrlRaw !== undefined || coverDataUrl !== undefined) {
       updateData.themeSettings = existingTheme;
     }
 

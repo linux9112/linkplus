@@ -28,3 +28,7 @@ Thumbs.db
 .agents/
 scratch/
 generate_frontend.cjs
+
+# User uploads
+uploads/*
+!uploads/**/.gitkeep
