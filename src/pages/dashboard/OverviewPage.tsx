@@ -7,6 +7,7 @@ import {
   QrCode,
   Copy,
   Check,
+  Plus,
   ArrowUpRight,
   TrendingUp,
   Download,
@@ -19,6 +20,8 @@ import {
   Mail,
   Globe,
   ChevronDown,
+  Activity,
+  Share2,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -213,10 +216,15 @@ export const OverviewPage: React.FC = () => {
   const publicUrl = `${window.location.origin}/${user?.username || ''}`;
   const displayName = profile?.display_name || (profile as any)?.displayName || user?.username || 'Creator';
   const avatarUrl = profile?.avatar_url ?? (profile as any)?.avatarUrl ?? null;
-  const bio = profile?.bio || 'Student • Creator • Dreamer';
+  const bio = profile?.bio?.trim() || '';
   const coverUrl = (profile?.theme_settings as any)?.cover_url || null;
 
-  // Fetch initial overview and user links
+  // Real social links from database
+  const userSocials = Array.isArray(profile?.social_links)
+    ? profile.social_links.filter((s) => Boolean(s.url))
+    : [];
+
+  // Fetch initial overview and user links directly from MySQL
   useEffect(() => {
     let active = true;
 
@@ -246,7 +254,7 @@ export const OverviewPage: React.FC = () => {
     };
   }, []);
 
-  // Fetch chart data dynamically when selectedDays changes
+  // Fetch real continuous daily timeline when selectedDays changes
   const fetchChartData = useCallback(async (days: number) => {
     try {
       const res = await api.get<{
@@ -297,171 +305,55 @@ export const OverviewPage: React.FC = () => {
     return <LoadingSpinner label="Loading dashboard overview..." />;
   }
 
-  // Pre-calculated metrics matching screenshot
-  const totalLinksCount = userLinks.length > 0 ? userLinks.length : stats.topLinks.length || 12;
-  const displayViews = stats.totalViews > 0 ? stats.totalViews : 2481;
-  const displayClicks = stats.totalClicks > 0 ? stats.totalClicks : 846;
-  const displayQrScans = stats.qrScans > 0 ? stats.qrScans : 215;
+  // Pure real MySQL metrics
+  const totalLinksCount = userLinks.length;
+  const activeLinksCount = userLinks.filter((l) => l.is_active).length;
+  const realViews = stats.totalViews;
+  const realClicks = stats.totalClicks;
+  const realQrScans = stats.qrScans;
 
   const kpiCards = [
     {
       label: 'Profile Views',
-      value: displayViews.toLocaleString(),
-      growth: '+12% vs last 30 days',
+      value: realViews.toLocaleString(),
+      badgeText: realViews > 0 ? `${realViews.toLocaleString()} total views` : 'No views yet',
       icon: Eye,
       iconBg: 'bg-[#F3E8FF] dark:bg-purple-950/40 text-[#9333EA] dark:text-purple-400',
     },
     {
       label: 'Link Clicks',
-      value: displayClicks.toLocaleString(),
-      growth: '+18% vs last 30 days',
+      value: realClicks.toLocaleString(),
+      badgeText: realClicks > 0 ? `CTR ${stats.ctr}%` : '0 clicks',
       icon: MousePointerClick,
       iconBg: 'bg-[#DBEAFE] dark:bg-blue-950/40 text-[#2563EB] dark:text-blue-400',
     },
     {
       label: 'Total Links',
       value: totalLinksCount.toLocaleString(),
-      growth: '+3 vs last 30 days',
+      badgeText: `${activeLinksCount} active`,
       icon: Link2,
       iconBg: 'bg-[#D1FAE5] dark:bg-emerald-950/40 text-[#059669] dark:text-emerald-400',
     },
     {
       label: 'QR Scans',
-      value: displayQrScans.toLocaleString(),
-      growth: '+27% vs last 30 days',
+      value: realQrScans.toLocaleString(),
+      badgeText: realQrScans > 0 ? `${realQrScans} scans` : 'Ready to scan',
       icon: QrCode,
       iconBg: 'bg-[#FCE7F3] dark:bg-pink-950/40 text-[#DB2777] dark:text-pink-400',
     },
   ];
 
-  // Top links fallback to sample showcase if empty so it matches screenshot appearance perfectly
-  const effectiveTopLinks: LinkItem[] =
-    stats.topLinks.length > 0
-      ? stats.topLinks.slice(0, 5)
-      : userLinks.length > 0
-      ? userLinks.slice(0, 5)
-      : [
-          {
-            id: 'sample-1',
-            title: 'My YouTube Channel',
-            destination_url: 'https://youtube.com/@channel',
-            position: 0,
-            is_active: true,
-            is_pinned: false,
-            is_hidden: false,
-            is_featured: false,
-            click_count: 342,
-          },
-          {
-            id: 'sample-2',
-            title: 'Study Notes',
-            destination_url: 'https://notes.example.com',
-            position: 1,
-            is_active: true,
-            is_pinned: false,
-            is_hidden: false,
-            is_featured: false,
-            click_count: 186,
-          },
-          {
-            id: 'sample-3',
-            title: 'My Projects',
-            destination_url: 'https://github.com/projects',
-            position: 2,
-            is_active: true,
-            is_pinned: false,
-            is_hidden: false,
-            is_featured: false,
-            click_count: 124,
-          },
-          {
-            id: 'sample-4',
-            title: 'Library',
-            destination_url: 'https://library.example.com',
-            position: 3,
-            is_active: true,
-            is_pinned: false,
-            is_hidden: false,
-            is_featured: false,
-            click_count: 98,
-          },
-          {
-            id: 'sample-5',
-            title: 'Contact Me',
-            destination_url: 'mailto:contact@example.com',
-            position: 4,
-            is_active: true,
-            is_pinned: false,
-            is_hidden: false,
-            is_featured: false,
-            click_count: 82,
-          },
-        ];
+  // Top real links sorted by click count descending
+  const topRealLinks: LinkItem[] = [...userLinks]
+    .sort((a, b) => (b.click_count || 0) - (a.click_count || 0))
+    .slice(0, 5);
 
-  const topTrends = ['+12%', '+20%', '+8%', '+15%', '+5%'];
-
-  // Recent activity events with realistic fallback if freshly initialized
-  const effectiveActivity =
-    stats.recentActivity.length > 0
-      ? stats.recentActivity.slice(0, 5)
-      : [
-          {
-            id: 'act-1',
-            eventType: 'profile_view',
-            referrerCategory: 'Direct visit',
-            deviceCategory: 'mobile',
-            linkTitle: null,
-            createdAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-          },
-          {
-            id: 'act-2',
-            eventType: 'link_click',
-            referrerCategory: 'India',
-            deviceCategory: 'India',
-            linkTitle: 'My YouTube Channel',
-            createdAt: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
-          },
-          {
-            id: 'act-3',
-            eventType: 'profile_view',
-            referrerCategory: 'Patna, India',
-            deviceCategory: 'desktop',
-            linkTitle: null,
-            createdAt: new Date(Date.now() - 28 * 60 * 1000).toISOString(),
-          },
-          {
-            id: 'act-4',
-            eventType: 'link_click',
-            referrerCategory: 'Android',
-            deviceCategory: 'Android',
-            linkTitle: 'Study Notes',
-            createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-          },
-          {
-            id: 'act-5',
-            eventType: 'profile_view',
-            referrerCategory: 'Google Search',
-            deviceCategory: 'desktop',
-            linkTitle: null,
-            createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          },
-        ];
-
-  // Social links showcase
-  const userSocials = Array.isArray(profile?.social_links) && profile.social_links.length > 0
-    ? profile.social_links.slice(0, 5)
-    : [
-        { platform: 'youtube', url: 'https://youtube.com' },
-        { platform: 'instagram', url: 'https://instagram.com' },
-        { platform: 'twitter', url: 'https://x.com' },
-        { platform: 'github', url: 'https://github.com' },
-        { platform: 'linkedin', url: 'https://linkedin.com' },
-      ];
+  const hasChartActivity = chartData.some((d) => d.views > 0 || d.clicks > 0);
 
   return (
     <div className="space-y-6">
       {/* =================================================================== */}
-      {/* 1. TOP WELCOME BANNER WITH 3D GRAPHIC & 4 KPI METRIC CARDS          */}
+      {/* 1. TOP WELCOME BANNER WITH 3D GRAPHIC & 4 REAL KPI METRIC CARDS     */}
       {/* =================================================================== */}
       <div className="rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-blue-50/80 via-indigo-50/50 to-purple-50/40 dark:from-[#202430] dark:via-[#252B3B] dark:to-[#202430] border border-[#E5E7EB] dark:border-[#343B4B] shadow-xs relative overflow-hidden">
         {/* Subtle decorative background glow */}
@@ -474,11 +366,11 @@ export const OverviewPage: React.FC = () => {
               <span className="text-2xl sm:text-3xl">👋</span>
             </h1>
             <p className="text-sm sm:text-base text-[#626B7A] dark:text-[#A7AFBD] mt-1.5 font-medium">
-              Here&apos;s your profile performance this month.
+              Here&apos;s your live profile performance and link analytics.
             </p>
           </div>
 
-          {/* 3D Glossy Isometric Graphic on the right (Matching Screenshot) */}
+          {/* 3D Glossy Isometric Graphic */}
           <div className="hidden md:flex items-center gap-4">
             <div className="flex flex-col items-end gap-1.5">
               <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 dark:bg-[#202430]/90 backdrop-blur-md border border-indigo-100 dark:border-indigo-900/40 text-xs font-bold text-[#4F46E5] dark:text-[#818CF8] shadow-2xs">
@@ -521,7 +413,7 @@ export const OverviewPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 4 Compact Performance Statistic Cards Grid */}
+        {/* 4 Compact Real Statistic Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 relative z-10">
           {kpiCards.map((kpi, idx) => {
             const Icon = kpi.icon;
@@ -538,9 +430,9 @@ export const OverviewPage: React.FC = () => {
                     {kpi.value}
                   </p>
                   <div className="flex items-center gap-1.5 mt-2.5">
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#15803D] dark:text-emerald-400">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#15803D] dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md">
                       <TrendingUp className="w-3 h-3" />
-                      <span>{kpi.growth}</span>
+                      <span>{kpi.badgeText}</span>
                     </span>
                   </div>
                 </div>
@@ -554,7 +446,7 @@ export const OverviewPage: React.FC = () => {
       </div>
 
       {/* =================================================================== */}
-      {/* 2. MIDDLE ROW: PROFILE VIEWS & LINK CLICKS (AREA CHART) + TOP LINKS */}
+      {/* 2. MIDDLE ROW: REAL VIEWS & CLICKS (AREA CHART) + REAL TOP LINKS    */}
       {/* =================================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column (68% width): Curved AreaChart */}
@@ -648,6 +540,12 @@ export const OverviewPage: React.FC = () => {
                 </AreaChart>
               </ResponsiveContainer>
             </div>
+
+            {!hasChartActivity && (
+              <div className="mt-2 text-center py-2 px-3 rounded-xl bg-slate-50 dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] text-[11px] text-[#626B7A] dark:text-[#A7AFBD]">
+                No visitor activity recorded yet in this timeframe. Share your profile link to begin recording live visits and link clicks.
+              </div>
+            )}
           </Card>
         </div>
 
@@ -666,45 +564,64 @@ export const OverviewPage: React.FC = () => {
               </Link>
             }
           >
-            <div className="space-y-3">
-              {effectiveTopLinks.map((link, i) => {
-                const clicks = link.click_count ?? (link as any).clickCount ?? 0;
-                const trend = topTrends[i % topTrends.length];
-                return (
-                  <div
-                    key={link.id || i}
-                    className="flex items-center justify-between p-2.5 rounded-xl bg-[#F7F8FA] dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] hover:border-[#4F46E5]/40 transition-all text-xs"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-                      <span className="w-5 h-5 rounded-md bg-white dark:bg-[#202430] border border-[#E5E7EB] dark:border-[#343B4B] flex items-center justify-center font-bold text-[#626B7A] dark:text-[#A7AFBD] shrink-0 text-[10px]">
-                        {i + 1}
-                      </span>
-                      {renderLinkCategoryIcon(link)}
-                      <div className="truncate">
-                        <p className="font-bold text-[#171923] dark:text-[#F9FAFB] truncate">
-                          {link.title}
-                        </p>
+            {topRealLinks.length === 0 ? (
+              <div className="py-8 text-center flex flex-col items-center justify-center">
+                <div className="w-12 h-12 rounded-2xl bg-[#EEF2FF] dark:bg-[#272D3A] text-[#4F46E5] dark:text-[#818CF8] flex items-center justify-center mb-3">
+                  <Link2 className="w-6 h-6" />
+                </div>
+                <h4 className="text-sm font-bold text-[#171923] dark:text-[#F9FAFB]">
+                  No links created yet
+                </h4>
+                <p className="text-xs text-[#626B7A] dark:text-[#A7AFBD] mt-1 max-w-xs">
+                  Create your first link to start tracking clicks and visitor engagement.
+                </p>
+                <Link
+                  to="/dashboard/links"
+                  className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold shadow-sm transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Your First Link</span>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {topRealLinks.map((link, i) => {
+                  const clicks = link.click_count ?? (link as any).clickCount ?? 0;
+                  return (
+                    <div
+                      key={link.id}
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-[#F7F8FA] dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] hover:border-[#4F46E5]/40 transition-all text-xs"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                        <span className="w-5 h-5 rounded-md bg-white dark:bg-[#202430] border border-[#E5E7EB] dark:border-[#343B4B] flex items-center justify-center font-bold text-[#626B7A] dark:text-[#A7AFBD] shrink-0 text-[10px]">
+                          {i + 1}
+                        </span>
+                        {renderLinkCategoryIcon(link)}
+                        <div className="truncate">
+                          <p className="font-bold text-[#171923] dark:text-[#F9FAFB] truncate">
+                            {link.title}
+                          </p>
+                          <p className="text-[10px] text-[#626B7A] dark:text-[#A7AFBD] truncate">
+                            {link.destination_url}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="font-bold text-[#4F46E5] dark:text-[#818CF8] bg-white dark:bg-[#202430] px-2 py-0.5 rounded border border-[#E5E7EB] dark:border-[#343B4B]">
+                          {clicks} clicks
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="font-semibold text-[#626B7A] dark:text-[#A7AFBD]">
-                        {clicks} clicks
-                      </span>
-                      <span className="inline-flex items-center text-[10px] font-bold text-[#15803D] dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">
-                        <TrendingUp className="w-2.5 h-2.5 mr-0.5" />
-                        {trend}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </Card>
         </div>
       </div>
 
       {/* =================================================================== */}
-      {/* 3. BOTTOM ROW: 3 EQUAL CARDS (PROFILE, QR CODE, RECENT ACTIVITY)   */}
+      {/* 3. BOTTOM ROW: 3 REAL CARDS (PROFILE, QR CODE, RECENT ACTIVITY)     */}
       {/* =================================================================== */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Card 1: Your Profile */}
@@ -725,18 +642,11 @@ export const OverviewPage: React.FC = () => {
         >
           <div className="rounded-2xl border border-[#E5E7EB] dark:border-[#343B4B] overflow-hidden bg-white dark:bg-[#202430] shadow-xs flex flex-col">
             {/* Cover image banner */}
-            <div className="w-full h-24 overflow-hidden relative bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-900">
+            <div className="w-full h-24 overflow-hidden relative bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500">
               {coverUrl ? (
                 <img src={coverUrl} alt="Cover" className="w-full h-full object-cover" />
               ) : (
-                <img
-                  src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80"
-                  alt="Mountain Dusk"
-                  className="w-full h-full object-cover opacity-90"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLElement).style.display = 'none';
-                  }}
-                />
+                <div className="w-full h-full bg-gradient-to-tr from-slate-800 to-indigo-950 flex items-center justify-center opacity-90" />
               )}
             </div>
 
@@ -753,27 +663,44 @@ export const OverviewPage: React.FC = () => {
                 <p className="text-xs font-medium text-[#626B7A] dark:text-[#A7AFBD] mt-0.5">
                   @{user?.username}
                 </p>
-                <p className="text-xs text-[#424B5A] dark:text-[#C2C8D2] mt-1.5 line-clamp-2 px-2 font-medium">
-                  {bio}
-                </p>
+                {bio ? (
+                  <p className="text-xs text-[#424B5A] dark:text-[#C2C8D2] mt-1.5 line-clamp-2 px-2 font-medium">
+                    {bio}
+                  </p>
+                ) : (
+                  <p className="text-xs text-[#626B7A] dark:text-[#A7AFBD] mt-1.5 italic px-2">
+                    No bio added yet
+                  </p>
+                )}
               </div>
 
-              {/* Social media icon buttons */}
-              <div className="flex items-center justify-center gap-2 mt-3.5">
-                {userSocials.map((soc, i) => (
-                  <a
-                    key={i}
-                    href={soc.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-7 h-7 rounded-full flex items-center justify-center bg-[#F7F8FA] dark:bg-[#171923] hover:scale-110 border border-[#E5E7EB] dark:border-[#343B4B] text-[#171923] dark:text-[#F9FAFB] transition-transform shadow-2xs"
-                    title={soc.platform}
+              {/* Social media icons or prompt to add */}
+              <div className="mt-3.5 min-h-[28px] flex items-center justify-center">
+                {userSocials.length > 0 ? (
+                  <div className="flex items-center justify-center gap-2">
+                    {userSocials.map((soc, i) => (
+                      <a
+                        key={i}
+                        href={soc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-7 h-7 rounded-full flex items-center justify-center bg-[#F7F8FA] dark:bg-[#171923] hover:scale-110 border border-[#E5E7EB] dark:border-[#343B4B] text-[#171923] dark:text-[#F9FAFB] transition-transform shadow-2xs"
+                        title={soc.platform}
+                      >
+                        <div className="w-3.5 h-3.5 flex items-center justify-center">
+                          {renderSocialIcon(soc.platform)}
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <Link
+                    to="/dashboard/profile"
+                    className="text-xs text-[#4F46E5] hover:text-[#4338CA] dark:text-[#818CF8] font-semibold hover:underline"
                   >
-                    <div className="w-3.5 h-3.5 flex items-center justify-center">
-                      {renderSocialIcon(soc.platform)}
-                    </div>
-                  </a>
-                ))}
+                    + Add social links
+                  </Link>
+                )}
               </div>
 
               {/* Edit Profile CTA Button */}
@@ -863,56 +790,78 @@ export const OverviewPage: React.FC = () => {
             </Link>
           }
         >
-          <div className="space-y-3">
-            {effectiveActivity.map((evt) => {
-              const isView = evt.eventType === 'profile_view';
-              const isScan = evt.eventType === 'qr_scan';
+          {stats.recentActivity.length === 0 ? (
+            <div className="py-8 text-center flex flex-col items-center justify-center">
+              <div className="w-12 h-12 rounded-2xl bg-[#EEF2FF] dark:bg-[#272D3A] text-[#4F46E5] dark:text-[#818CF8] flex items-center justify-center mb-3">
+                <Activity className="w-6 h-6" />
+              </div>
+              <h4 className="text-sm font-bold text-[#171923] dark:text-[#F9FAFB]">
+                No activity recorded yet
+              </h4>
+              <p className="text-xs text-[#626B7A] dark:text-[#A7AFBD] mt-1 max-w-xs">
+                Real views and link clicks will appear here live once visitors open your profile.
+              </p>
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#F7F8FA] hover:bg-slate-100 dark:bg-[#171923] dark:hover:bg-[#272D3A] border border-[#E5E7EB] dark:border-[#343B4B] text-xs font-semibold text-[#171923] dark:text-[#F9FAFB] transition-colors"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-[#15803D]" /> : <Share2 className="w-3.5 h-3.5 text-[#4F46E5]" />}
+                <span>{copied ? 'Copied URL!' : 'Share Profile URL'}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {stats.recentActivity.slice(0, 5).map((evt) => {
+                const isView = evt.eventType === 'profile_view';
+                const isScan = evt.eventType === 'qr_scan';
 
-              return (
-                <div
-                  key={evt.id}
-                  className="flex items-center justify-between p-2.5 rounded-xl bg-[#F7F8FA] dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] text-xs hover:border-[#4F46E5]/40 transition-colors"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-                    <div
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${
-                        isView
-                          ? 'bg-[#EEF2FF] text-[#4F46E5] dark:bg-indigo-950/40 dark:text-[#818CF8]'
-                          : isScan
-                          ? 'bg-[#FCE7F3] text-[#DB2777] dark:bg-pink-950/40 dark:text-pink-400'
-                          : 'bg-[#EF4444] text-white'
-                      }`}
-                    >
-                      {isView ? (
-                        <Eye className="w-4 h-4" />
-                      ) : isScan ? (
-                        <QrCode className="w-4 h-4" />
-                      ) : (
-                        <Video className="w-4 h-4 fill-current" />
-                      )}
+                return (
+                  <div
+                    key={evt.id}
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-[#F7F8FA] dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] text-xs hover:border-[#4F46E5]/40 transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                      <div
+                        className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${
+                          isView
+                            ? 'bg-[#EEF2FF] text-[#4F46E5] dark:bg-indigo-950/40 dark:text-[#818CF8]'
+                            : isScan
+                            ? 'bg-[#FCE7F3] text-[#DB2777] dark:bg-pink-950/40 dark:text-pink-400'
+                            : 'bg-[#EF4444] text-white'
+                        }`}
+                      >
+                        {isView ? (
+                          <Eye className="w-4 h-4" />
+                        ) : isScan ? (
+                          <QrCode className="w-4 h-4" />
+                        ) : (
+                          <Video className="w-4 h-4 fill-current" />
+                        )}
+                      </div>
+                      <div className="truncate">
+                        <p className="font-bold text-[#171923] dark:text-[#F9FAFB] truncate">
+                          {isView
+                            ? 'Profile viewed'
+                            : isScan
+                            ? 'QR Code scanned'
+                            : evt.linkTitle || 'Link clicked'}
+                        </p>
+                        <p className="text-[11px] text-[#626B7A] dark:text-[#A7AFBD] truncate">
+                          {isView
+                            ? evt.referrerCategory || 'Direct visit'
+                            : `Clicked from ${evt.deviceCategory || 'mobile'}`}
+                        </p>
+                      </div>
                     </div>
-                    <div className="truncate">
-                      <p className="font-bold text-[#171923] dark:text-[#F9FAFB] truncate">
-                        {isView
-                          ? 'Profile viewed'
-                          : isScan
-                          ? 'QR Code scanned'
-                          : evt.linkTitle || 'Link clicked'}
-                      </p>
-                      <p className="text-[11px] text-[#626B7A] dark:text-[#A7AFBD] truncate">
-                        {isView
-                          ? evt.referrerCategory || 'Direct visit'
-                          : `Clicked from ${evt.deviceCategory || 'mobile'}`}
-                      </p>
-                    </div>
+                    <span className="text-[11px] font-medium text-[#626B7A] dark:text-[#A7AFBD] shrink-0">
+                      {formatRelativeTime(evt.createdAt)}
+                    </span>
                   </div>
-                  <span className="text-[11px] font-medium text-[#626B7A] dark:text-[#A7AFBD] shrink-0">
-                    {formatRelativeTime(evt.createdAt)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </Card>
       </div>
     </div>
