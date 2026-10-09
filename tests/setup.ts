@@ -1065,6 +1065,46 @@ export function buildLinkPulseTestApp(): express.Application {
   });
 
   // --------------------------------------------------------------------------
+  // UPLOAD ROUTES (/api/upload/image)
+  // --------------------------------------------------------------------------
+
+  app.post('/api/upload/image', requireAuth, (req: Request, res: Response) => {
+    const { image_data, type, link_id } = req.body || {};
+    if (!image_data) {
+      return res.status(400).json({ error: 'Image data is required.' });
+    }
+    const match = /^data:image\/(jpeg|jpg|png|webp|gif);base64,([A-Za-z0-9+/=\s]+)$/i.exec(image_data);
+    if (!match) {
+      return res.status(400).json({ error: 'Invalid image format. Supported formats: PNG, JPG, JPEG, and WebP (up to 5 MB).' });
+    }
+    const buffer = Buffer.from(match[2].replace(/\s/g, ''), 'base64');
+    if (buffer.length > 5 * 1024 * 1024) {
+      return res.status(400).json({ error: 'File exceeds maximum upload size of 5 MB.' });
+    }
+    const user = (req as any).user as TestUser;
+    const safeFilename = `${type || 'link'}-${crypto.randomUUID()}.${match[1].toLowerCase()}`;
+    const publicUrl = `/api/uploads/${type === 'avatar' ? 'avatars' : 'links'}/${safeFilename}`;
+
+    if (link_id) {
+      const link = testDb.links.get(link_id);
+      if (!link) return res.status(404).json({ error: 'Link not found' });
+      if (link.user_id !== user.id) return res.status(403).json({ error: 'Not authorized to modify this link' });
+      link.thumbnail_url = publicUrl;
+    }
+
+    if (type === 'avatar') {
+      for (const p of testDb.profiles.values()) {
+        if (p.user_id === user.id) {
+          p.avatar_url = publicUrl;
+          break;
+        }
+      }
+    }
+
+    return res.status(200).json({ url: publicUrl, filename: safeFilename, message: 'Image uploaded successfully.' });
+  });
+
+  // --------------------------------------------------------------------------
   // QR STUDIO ROUTES (/api/qr-settings, /api/qr/generate)
   // --------------------------------------------------------------------------
 

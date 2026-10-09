@@ -17,6 +17,7 @@ import redirectRoutes from './routes/redirect.routes.js';
 import qrRoutes from './routes/qr.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import uploadRoutes from './routes/upload.routes.js';
 
 /**
  * Creates and configures the LinkPulse Express Application.
@@ -28,11 +29,18 @@ export function createApp(): Application {
   app.use(helmetMiddleware);
   app.use(corsMiddleware);
 
-  // Performance & Body Parsing
+  // Performance & Body Parsing (10MB limit for rich media, logo and avatar uploads)
   app.use(compression());
   app.use(cookieParser());
-  app.use(express.json({ limit: '2mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+  // Static uploads directory serving
+  const uploadsDir = path.resolve(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  app.use('/uploads', express.static(uploadsDir, { maxAge: '1d' }));
 
   // Basic Health Check
   app.get('/api/health', (_req, res) => {
@@ -82,6 +90,8 @@ export function createApp(): Application {
   app.use('/api/qr-settings', qrRoutes);
   app.use('/api/analytics', analyticsRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/upload', uploadRoutes);
+  app.use('/api/uploads', uploadRoutes);
 
   // Fallback 404 for unmatched API routes
   app.use('/api/*', notFoundHandler);

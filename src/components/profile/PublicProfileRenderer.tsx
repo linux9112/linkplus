@@ -1,25 +1,21 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  ExternalLink,
   Pin,
   Globe,
   Github,
   Twitter,
   Instagram,
   Linkedin,
-  Youtube,
   Mail,
   Music,
   Video,
   ShoppingBag,
-  FileText,
-  Code,
-  Heart,
-  Star,
-  Calendar,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
+  Folder,
+  BookOpen,
 } from 'lucide-react';
 import type { Profile, Link as LinkItem } from '../../types/index';
 import Avatar from '../ui/Avatar';
@@ -172,68 +168,150 @@ export const THEME_PRESETS: Record<string, ThemePresetDefinition> = {
   },
 };
 
-export function renderLinkIcon(iconName?: string | null) {
-  switch ((iconName || '').toLowerCase()) {
-    case 'github':
-      return <Github className="w-5 h-5" />;
-    case 'twitter':
-    case 'x':
-      return <Twitter className="w-5 h-5" />;
-    case 'instagram':
-      return <Instagram className="w-5 h-5" />;
-    case 'linkedin':
-      return <Linkedin className="w-5 h-5" />;
-    case 'youtube':
-    case 'video':
-      return <Video className="w-5 h-5" />;
-    case 'music':
-    case 'spotify':
-      return <Music className="w-5 h-5" />;
-    case 'shop':
-    case 'store':
-      return <ShoppingBag className="w-5 h-5" />;
-    case 'blog':
-    case 'article':
-      return <FileText className="w-5 h-5" />;
-    case 'code':
-      return <Code className="w-5 h-5" />;
-    case 'heart':
-      return <Heart className="w-5 h-5" />;
-    case 'star':
-      return <Star className="w-5 h-5" />;
-    case 'calendar':
-      return <Calendar className="w-5 h-5" />;
-    case 'mail':
-    case 'email':
-      return <Mail className="w-5 h-5" />;
-    default:
-      return <Globe className="w-5 h-5" />;
+export const SOCIAL_PLATFORMS_META: Record<
+  string,
+  { label: string; bg: string; color: string; icon: (props: any) => JSX.Element }
+> = {
+  youtube: {
+    label: 'YouTube',
+    bg: '#FF0000',
+    color: '#FFFFFF',
+    icon: (p) => <Video {...p} className="w-5 h-5 fill-current" />,
+  },
+  instagram: {
+    label: 'Instagram',
+    bg: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+    color: '#FFFFFF',
+    icon: (p) => <Instagram {...p} className="w-5 h-5" />,
+  },
+  twitter: {
+    label: 'X',
+    bg: '#000000',
+    color: '#FFFFFF',
+    icon: (p) => <Twitter {...p} className="w-5 h-5 fill-current" />,
+  },
+  x: {
+    label: 'X',
+    bg: '#000000',
+    color: '#FFFFFF',
+    icon: (p) => <Twitter {...p} className="w-5 h-5 fill-current" />,
+  },
+  github: {
+    label: 'GitHub',
+    bg: '#24292e',
+    color: '#FFFFFF',
+    icon: (p) => <Github {...p} className="w-5 h-5 fill-current" />,
+  },
+  linkedin: {
+    label: 'LinkedIn',
+    bg: '#0A66C2',
+    color: '#FFFFFF',
+    icon: (p) => <Linkedin {...p} className="w-5 h-5 fill-current" />,
+  },
+  facebook: {
+    label: 'Facebook',
+    bg: '#1877F2',
+    color: '#FFFFFF',
+    icon: (p) => <Globe {...p} className="w-5 h-5" />,
+  },
+  whatsapp: {
+    label: 'WhatsApp',
+    bg: '#25D366',
+    color: '#FFFFFF',
+    icon: (p) => <Mail {...p} className="w-5 h-5" />,
+  },
+  telegram: {
+    label: 'Telegram',
+    bg: '#229ED9',
+    color: '#FFFFFF',
+    icon: (p) => <Globe {...p} className="w-5 h-5" />,
+  },
+  website: {
+    label: 'Website',
+    bg: '#4F46E5',
+    color: '#FFFFFF',
+    icon: (p) => <Globe {...p} className="w-5 h-5" />,
+  },
+  email: {
+    label: 'Email',
+    bg: '#EA4335',
+    color: '#FFFFFF',
+    icon: (p) => <Mail {...p} className="w-5 h-5" />,
+  },
+  tiktok: {
+    label: 'TikTok',
+    bg: '#000000',
+    color: '#FFFFFF',
+    icon: (p) => <Music {...p} className="w-5 h-5" />,
+  },
+  spotify: {
+    label: 'Spotify',
+    bg: '#1DB954',
+    color: '#FFFFFF',
+    icon: (p) => <Music {...p} className="w-5 h-5" />,
+  },
+};
+
+export function renderLinkIcon(iconName?: string | null, title?: string, destinationUrl?: string) {
+  const norm = `${iconName || ''} ${title || ''} ${destinationUrl || ''}`.toLowerCase();
+
+  if (norm.includes('youtube') || norm.includes('video')) {
+    return (
+      <div className="w-10 h-10 rounded-xl bg-[#FF0000] text-white flex items-center justify-center shadow-sm">
+        <Video className="w-5 h-5 fill-current" />
+      </div>
+    );
   }
+  if (norm.includes('project') || norm.includes('folder') || norm.includes('work') || norm.includes('portfolio')) {
+    return (
+      <div className="w-10 h-10 rounded-xl bg-[#2563EB] text-white flex items-center justify-center shadow-sm">
+        <Folder className="w-5 h-5 fill-current" />
+      </div>
+    );
+  }
+  if (norm.includes('note') || norm.includes('study') || norm.includes('book') || norm.includes('doc') || norm.includes('course')) {
+    return (
+      <div className="w-10 h-10 rounded-xl bg-[#16A34A] text-white flex items-center justify-center shadow-sm">
+        <BookOpen className="w-5 h-5" />
+      </div>
+    );
+  }
+  if (norm.includes('contact') || norm.includes('mail') || norm.includes('message') || norm.includes('chat')) {
+    return (
+      <div className="w-10 h-10 rounded-xl bg-[#9333EA] text-white flex items-center justify-center shadow-sm">
+        <Mail className="w-5 h-5" />
+      </div>
+    );
+  }
+  if (norm.includes('github') || norm.includes('code') || norm.includes('repo')) {
+    return (
+      <div className="w-10 h-10 rounded-xl bg-[#1F2937] text-white flex items-center justify-center shadow-sm">
+        <Github className="w-5 h-5" />
+      </div>
+    );
+  }
+  if (norm.includes('shop') || norm.includes('store') || norm.includes('buy') || norm.includes('product')) {
+    return (
+      <div className="w-10 h-10 rounded-xl bg-[#D97706] text-white flex items-center justify-center shadow-sm">
+        <ShoppingBag className="w-5 h-5" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-10 h-10 rounded-xl bg-indigo-500/15 text-indigo-500 flex items-center justify-center">
+      <Globe className="w-5 h-5" />
+    </div>
+  );
 }
 
 export function renderSocialIcon(platform: string) {
-  switch (platform.toLowerCase()) {
-    case 'github':
-      return <Github className="w-5 h-5" />;
-    case 'twitter':
-    case 'x':
-      return <Twitter className="w-5 h-5" />;
-    case 'instagram':
-      return <Instagram className="w-5 h-5" />;
-    case 'linkedin':
-      return <Linkedin className="w-5 h-5" />;
-    case 'youtube':
-      return <Youtube className="w-5 h-5" />;
-    case 'email':
-    case 'mail':
-      return <Mail className="w-5 h-5" />;
-    case 'music':
-    case 'spotify':
-    case 'tiktok':
-      return <Music className="w-5 h-5" />;
-    default:
-      return <Globe className="w-5 h-5" />;
+  const key = platform.toLowerCase();
+  const meta = SOCIAL_PLATFORMS_META[key];
+  if (meta) {
+    return meta.icon({});
   }
+  return <Globe className="w-5 h-5" />;
 }
 
 function getYoutubeEmbedUrl(url: string): string | null {
@@ -318,6 +396,8 @@ export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
 
   const displayName = profile?.display_name || (profile as any)?.displayName || username;
   const avatarUrl = profile?.avatar_url ?? (profile as any)?.avatarUrl ?? null;
+  const coverUrl = (rawTheme.cover_url as string) || (profile as any)?.cover_url || null;
+  const tagline = (rawTheme.title_tagline as string) || (profile as any)?.title_tagline || (profile as any)?.tagline || null;
 
   // Group links if categories exist
   const categories: string[] = [];
@@ -334,18 +414,35 @@ export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
       } flex flex-col items-center justify-between transition-all duration-300`}
     >
       <div className="w-full max-w-xl mx-auto flex flex-col items-center">
+        {/* Cover Photo / Banner if configured */}
+        {coverUrl && (
+          <div className="w-full h-32 sm:h-40 rounded-2xl overflow-hidden mb-[-44px] shadow-sm relative z-0 border border-white/15">
+            <img src={coverUrl} alt="Cover Banner" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/25" />
+          </div>
+        )}
+
         {/* Profile Header */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center text-center mb-8 w-full"
+          className={`flex flex-col items-center text-center mb-8 w-full ${coverUrl ? 'relative z-10' : ''}`}
         >
-          <div className="relative mb-4">
-            <Avatar src={avatarUrl} name={displayName} size="xl" />
+          <div className="relative mb-3">
+            <div className={coverUrl ? 'ring-4 ring-white dark:ring-[#202430] rounded-full' : ''}>
+              <Avatar src={avatarUrl} name={displayName} size="xl" />
+            </div>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{displayName}</h1>
-          <p className="text-xs font-medium opacity-75 mt-1">@{username}</p>
+          <p className="text-xs font-semibold opacity-70 mt-0.5">@{username}</p>
+
+          {/* Professional Tagline / Role (e.g. "Student • Creator • Dreamer") */}
+          {tagline && (
+            <p className="text-xs sm:text-sm font-semibold opacity-90 mt-1.5 tracking-wide text-indigo-500 dark:text-indigo-400">
+              {tagline}
+            </p>
+          )}
 
           {profile?.bio && (
             <p
@@ -358,27 +455,31 @@ export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
 
           {/* Social Handles Bar */}
           {socialLinks.length > 0 && (
-            <div className="flex flex-wrap items-center justify-center gap-2.5 mt-5">
-              {socialLinks.map((s: { platform: string; url: string }, idx: number) => (
-                <a
-                  key={`${s.platform}-${idx}`}
-                  href={s.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => {
-                    if (isPreview) e.preventDefault();
-                  }}
-                  style={{
-                    backgroundColor: preset.cardBg,
-                    borderColor: preset.cardBorder,
-                    color: preset.cardText,
-                  }}
-                  className="p-2.5 rounded-full border backdrop-blur-md hover:scale-110 transition-transform shadow-sm"
-                  title={s.platform}
-                >
-                  {renderSocialIcon(s.platform)}
-                </a>
-              ))}
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
+              {socialLinks.map((s: { platform: string; url: string }, idx: number) => {
+                const key = s.platform.toLowerCase();
+                const meta = SOCIAL_PLATFORMS_META[key];
+                return (
+                  <a
+                    key={`${s.platform}-${idx}`}
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      if (isPreview) e.preventDefault();
+                    }}
+                    style={{
+                      background: meta ? meta.bg : preset.cardBg,
+                      color: meta ? meta.color : preset.cardText,
+                      borderColor: meta ? 'transparent' : preset.cardBorder,
+                    }}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center border shadow-sm hover:scale-110 active:scale-95 transition-all"
+                    title={meta?.label || s.platform}
+                  >
+                    {renderSocialIcon(s.platform)}
+                  </a>
+                );
+              })}
             </div>
           )}
         </motion.div>
@@ -451,23 +552,22 @@ export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
                             onClick={(e) => {
                               if (isPreview) e.preventDefault();
                             }}
-                            className="flex items-center justify-between gap-3.5 px-5 py-4 w-full"
+                            className="flex items-center justify-between gap-3.5 px-4 sm:px-5 py-3.5 sm:py-4 w-full"
                           >
                             {/* Left Icon or Thumbnail */}
                             <div className="flex items-center gap-3.5 min-w-0 flex-1">
                               {thumb ? (
-                                <img
-                                  src={thumb}
-                                  alt={link.title}
-                                  loading="lazy"
-                                  className="w-11 h-11 rounded-xl object-cover shrink-0 border border-white/15"
-                                />
+                                <div className="w-11 h-11 rounded-xl bg-white/10 dark:bg-black/20 flex items-center justify-center overflow-hidden shrink-0 border border-white/20 p-1">
+                                  <img
+                                    src={thumb}
+                                    alt={link.title}
+                                    loading="lazy"
+                                    className="w-full h-full object-contain rounded-lg"
+                                  />
+                                </div>
                               ) : (
-                                <div
-                                  style={{ backgroundColor: 'rgba(99, 102, 241, 0.14)' }}
-                                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                                >
-                                  {renderLinkIcon(link.icon)}
+                                <div className="w-11 h-11 shrink-0">
+                                  {renderLinkIcon(link.icon, link.title, link.destination_url)}
                                 </div>
                               )}
 
@@ -508,7 +608,7 @@ export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
                               </div>
                             </div>
 
-                            {/* Right Action */}
+                            {/* Right Action: Chevron arrow matching mockup */}
                             <div className="flex items-center gap-2 shrink-0">
                               {ytEmbed && (
                                 <button
@@ -531,7 +631,7 @@ export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
                                   )}
                                 </button>
                               )}
-                              <ExternalLink className="w-4 h-4 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                              <ChevronRight className="w-4 h-4 opacity-70 group-hover:opacity-100 group-hover:translate-x-1 transition-all shrink-0" />
                             </div>
                           </a>
 

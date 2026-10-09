@@ -98,8 +98,12 @@ export const api = {
       body: body !== undefined ? JSON.stringify(body) : undefined,
     }),
 
-  delete: <T = any>(url: string, options?: RequestOptions) =>
-    request<T>(url, { ...options, method: 'DELETE' }),
+  delete: <T = any>(url: string, body?: unknown, options?: RequestOptions) =>
+    request<T>(url, {
+      ...options,
+      method: 'DELETE',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }),
 
   patch: <T = any>(url: string, body?: unknown, options?: RequestOptions) =>
     request<T>(url, {

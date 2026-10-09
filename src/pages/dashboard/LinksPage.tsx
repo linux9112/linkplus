@@ -14,9 +14,11 @@ import {
   Layers,
   Check,
   MousePointerClick,
+  Upload,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
+import { validateImageFile, processImageFileToDataUri } from '../../utils/imageUpload';
 import type { Link as LinkItem } from '../../types/index';
 import PublicProfileRenderer, { renderLinkIcon } from '../../components/profile/PublicProfileRenderer';
 import Button from '../../components/ui/Button';
@@ -416,9 +418,17 @@ export const LinksPage: React.FC = () => {
                       <GripVertical className="w-5 h-5" />
                     </div>
 
-                    {/* Icon */}
-                    <div className="w-10 h-10 rounded-xl bg-[#EEF2FF] text-[#4F46E5] dark:bg-[#272D3A] dark:text-[#6366F1] flex items-center justify-center shrink-0 mt-0.5">
-                      {renderLinkIcon(link.icon)}
+                    {/* Icon or Custom Logo */}
+                    <div className="w-11 h-11 rounded-xl bg-[#F7F8FA] dark:bg-[#171923] border border-[#E5E7EB] dark:border-[#343B4B] flex items-center justify-center overflow-hidden shrink-0 mt-0.5 shadow-sm p-1">
+                      {link.thumbnail_url ? (
+                        <img
+                          src={link.thumbnail_url}
+                          alt={link.title}
+                          className="w-full h-full object-contain rounded-lg"
+                        />
+                      ) : (
+                        renderLinkIcon(link.icon, link.title, dest)
+                      )}
                     </div>
 
                     {/* Details */}
@@ -621,10 +631,68 @@ export const LinksPage: React.FC = () => {
             placeholder="Brief subtitle displayed under the link title"
           />
 
+          {/* Custom Logo Upload */}
+          <div className="p-3 bg-[#F7F8FA] dark:bg-[#171923] rounded-xl border border-[#E5E7EB] dark:border-[#343B4B] flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-white dark:bg-[#202430] border border-[#E5E7EB] dark:border-[#343B4B] flex items-center justify-center overflow-hidden shrink-0 p-1 shadow-sm">
+                {form.thumbnail_url ? (
+                  <img src={form.thumbnail_url} alt="Logo" className="w-full h-full object-contain rounded-lg" />
+                ) : (
+                  renderLinkIcon(form.icon, form.title, form.destination_url)
+                )}
+              </div>
+              <div>
+                <div className="text-xs font-semibold text-[#171923] dark:text-[#F9FAFB]">
+                  Custom Link Logo
+                </div>
+                <p className="text-[11px] text-[#626B7A] dark:text-[#A7AFBD]">
+                  PNG, JPG, or WebP up to 5 MB. Preserves transparent background.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="cursor-pointer px-3 py-1.5 rounded-lg border border-[#E5E7EB] dark:border-[#343B4B] bg-white dark:bg-[#202430] text-xs font-semibold text-[#171923] dark:text-[#F9FAFB] hover:border-[#4F46E5] inline-flex items-center gap-1.5 shadow-sm">
+                <Upload className="w-3.5 h-3.5 text-indigo-500" />
+                <span>{form.thumbnail_url ? 'Replace' : 'Upload Logo'}</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      validateImageFile(file, 5);
+                      const dataUri = await processImageFileToDataUri(file, 400, 'contain');
+                      const res = await api.post<{ url: string }>('/api/upload/image', {
+                        image_data: dataUri,
+                        type: 'link',
+                        link_id: editingLink?.id,
+                      });
+                      setForm((prev) => ({ ...prev, thumbnail_url: res.url }));
+                      showToast('Logo uploaded!', 'success');
+                    } catch (err: any) {
+                      showToast(err.message || 'Failed to upload logo', 'error');
+                    }
+                  }}
+                />
+              </label>
+              {form.thumbnail_url && (
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, thumbnail_url: '' }))}
+                  className="px-2 py-1.5 text-xs text-red-600 dark:text-red-400 hover:underline"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Icon Selector */}
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-[#626B7A] dark:text-[#A7AFBD] mb-2">
-              Icon
+              Fallback Icon
             </label>
             <div className="flex flex-wrap gap-2">
               {ICON_OPTIONS.map((ic) => (
