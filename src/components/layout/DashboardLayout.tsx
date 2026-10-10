@@ -111,7 +111,7 @@ export const DashboardLayout: React.FC = () => {
   };
 
   const displayName = profile?.display_name || (profile as any)?.displayName || user?.username || 'Creator';
-  const avatarUrl = profile?.avatar_url ?? (profile as any)?.avatarUrl ?? null;
+  const avatarUrl = profile?.avatar_url || (profile as any)?.avatarUrl || (profile?.theme_settings as any)?.avatar_data_url || null;
 
   // Filter items in quick search palette
   const filteredNav = navItems.filter((item) =>

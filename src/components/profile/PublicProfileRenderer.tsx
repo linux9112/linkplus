@@ -446,7 +446,7 @@ export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
   const avatarShape = (rawTheme.avatar_shape as string) || 'circle';
   const avatarBorderWidth = typeof rawTheme.avatar_border_width === 'number' ? rawTheme.avatar_border_width : 4;
   const avatarBorderColor = (rawTheme.avatar_border_color as string) || '#ffffff';
-  const coverUrl = (rawTheme.cover_url as string) || (profile as any)?.cover_url || null;
+  const coverUrl = (rawTheme.cover_url as string) || (profile as any)?.cover_url || rawTheme.cover_data_url || null;
   const coverHeight = typeof rawTheme.cover_height === 'number' ? rawTheme.cover_height : 160;
 
   // Button settings
@@ -539,7 +539,7 @@ export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
     : [];
 
   const displayName = profile?.display_name || (profile as any)?.displayName || username;
-  const avatarUrl = profile?.avatar_url ?? (profile as any)?.avatarUrl ?? null;
+  const avatarUrl = profile?.avatar_url || (profile as any)?.avatarUrl || rawTheme.avatar_data_url || null;
   const tagline = (rawTheme.title_tagline as string) || (profile as any)?.title_tagline || (profile as any)?.tagline || null;
 
   // Group links by category

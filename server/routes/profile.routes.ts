@@ -4,6 +4,7 @@ import { prisma } from '../db/prisma.js';
 import { requireAuth } from '../middleware/auth.middleware.js';
 import { isReservedUsername, validateUsername } from '../utils/reserved-usernames.js';
 import { sanitizeUser } from '../services/auth.service.js';
+import { parseDataImageUri, MAX_UPLOAD_SIZE, validateImageMagicBytes } from '../utils/image-storage.js';
 
 const router = Router();
 
@@ -74,8 +75,6 @@ router.get('/', requireAuth, async (req: Request, res: Response, next: NextFunct
   }
 });
 
-const DATA_IMAGE_REGEX = /^data:image\/(jpeg|jpg|png|webp|gif);base64,([A-Za-z0-9+/=\s]+)$/i;
-
 /**
  * PUT /api/profile
  * Update the authenticated user's profile, theme settings, social links, and visibility.
@@ -121,9 +120,12 @@ router.put('/', requireAuth, async (req: Request, res: Response, next: NextFunct
       if (!trimmedAvatar) {
         updateData.avatarUrl = null;
         delete existingTheme.avatar_data_url;
-      } else if (DATA_IMAGE_REGEX.test(trimmedAvatar)) {
-        existingTheme.avatar_data_url = trimmedAvatar;
-        updateData.avatarUrl = `/api/public/avatar/${req.user!.id}?v=${Date.now()}`;
+      } else if (trimmedAvatar.startsWith('data:image/')) {
+        const parsed = parseDataImageUri(trimmedAvatar);
+        if (parsed) {
+          existingTheme.avatar_data_url = trimmedAvatar;
+          updateData.avatarUrl = `/api/public/avatar/${req.user!.id}?v=${Date.now()}`;
+        }
       } else {
         updateData.avatarUrl = trimmedAvatar.slice(0, 1000);
       }
@@ -135,8 +137,17 @@ router.put('/', requireAuth, async (req: Request, res: Response, next: NextFunct
       if (!trimmedCover) {
         delete existingTheme.cover_data_url;
         delete existingTheme.cover_url;
-      } else if (DATA_IMAGE_REGEX.test(trimmedCover)) {
-        existingTheme.cover_data_url = trimmedCover;
+      } else if (trimmedCover.startsWith('data:image/')) {
+        const parsed = parseDataImageUri(trimmedCover);
+        if (parsed) {
+          existingTheme.cover_data_url = trimmedCover;
+          existingTheme.cover_url = `/api/public/cover/${req.user!.id}?v=${Date.now()}`;
+        }
+      }
+    } else if (typeof existingTheme.cover_url === 'string' && existingTheme.cover_url.startsWith('data:image/')) {
+      const parsed = parseDataImageUri(existingTheme.cover_url);
+      if (parsed) {
+        existingTheme.cover_data_url = existingTheme.cover_url;
         existingTheme.cover_url = `/api/public/cover/${req.user!.id}?v=${Date.now()}`;
       }
     }
@@ -175,19 +186,29 @@ router.post('/avatar', requireAuth, async (req: Request, res: Response, next: Ne
     const body = req.body || {};
     const imageData = String(body.image_data || body.imageData || body.avatar || '').trim();
 
-    const match = DATA_IMAGE_REGEX.exec(imageData);
-    if (!match) {
+    if (!imageData) {
+      res.status(400).json({ error: 'Image data is required.' });
+      return;
+    }
+
+    const parsed = parseDataImageUri(imageData);
+    if (!parsed) {
       res.status(400).json({
-        error: 'Invalid image format. Please upload a valid JPG, PNG, WebP, or GIF image.',
+        error: 'Invalid image format. Please upload a valid PNG, JPG, WebP, GIF, or SVG image.',
       });
       return;
     }
 
-    const base64Payload = match[2].replace(/\s/g, '');
-    const byteLength = Buffer.byteLength(base64Payload, 'base64');
-    if (byteLength > 2 * 1024 * 1024) {
+    if (parsed.buffer.length > MAX_UPLOAD_SIZE) {
       res.status(400).json({
-        error: 'Profile photo must be smaller than 2 MB.',
+        error: 'Profile photo must be smaller than 5 MB.',
+      });
+      return;
+    }
+
+    if (!validateImageMagicBytes(parsed.buffer, parsed.format)) {
+      res.status(400).json({
+        error: 'Image file content does not match its declared format or is corrupt.',
       });
       return;
     }

@@ -460,13 +460,25 @@ export const AppearancePage: React.FC = () => {
     }
   };
 
-  const handleApplyCroppedImage = (croppedDataUri: string) => {
+  const handleApplyCroppedImage = async (croppedDataUri: string) => {
     if (cropTarget === 'cover') {
-      updateSettings({
-        cover_url: croppedDataUri,
-        cover_data_url: croppedDataUri,
-      });
-      showToast('Cover photo updated in studio!', 'success');
+      try {
+        const res = await api.post<{ url: string }>('/api/upload/image', {
+          image_data: croppedDataUri,
+          type: 'cover',
+        });
+        updateSettings({
+          cover_url: res.url,
+          cover_data_url: croppedDataUri,
+        });
+        showToast('Cover banner updated and saved!', 'success');
+      } catch {
+        updateSettings({
+          cover_url: croppedDataUri,
+          cover_data_url: croppedDataUri,
+        });
+        showToast('Cover photo updated in studio preview!', 'info');
+      }
     }
     setCropModalOpen(false);
   };

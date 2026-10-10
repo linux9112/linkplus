@@ -336,11 +336,15 @@ export const ProfilePage: React.FC = () => {
     try {
       let finalThumbUrl: string | null = null;
       if (newLinkLogo) {
-        const uploadRes = await api.post<{ url: string }>('/api/upload/image', {
-          image_data: newLinkLogo,
-          type: 'link',
-        });
-        finalThumbUrl = uploadRes.url;
+        if (newLinkLogo.startsWith('data:image/')) {
+          const uploadRes = await api.post<{ url: string }>('/api/upload/image', {
+            image_data: newLinkLogo,
+            type: 'link',
+          });
+          finalThumbUrl = uploadRes.url;
+        } else {
+          finalThumbUrl = newLinkLogo;
+        }
       }
 
       const res = await api.post<{ link: LinkItem }>('/api/links', {

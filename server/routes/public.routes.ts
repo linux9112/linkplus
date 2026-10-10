@@ -7,6 +7,7 @@ import { isReservedUsername } from '../utils/reserved-usernames.js';
 import { optionalAuth } from '../middleware/auth.middleware.js';
 import { formatProfile } from './profile.routes.js';
 import { formatLink } from './link.routes.js';
+import { parseDataImageUri, readFromDiskIfPossible } from '../utils/image-storage.js';
 
 const router = Router();
 
@@ -46,7 +47,7 @@ export function computeDailyVisitorHash(ip: string, userAgent: string): string {
 
 /**
  * GET /api/public/avatar/:userId
- * Serve the user's uploaded profile photo directly from MySQL.
+ * Serve the user's uploaded profile photo directly from MySQL (or disk fallback).
  */
 router.get('/avatar/:userId', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -60,30 +61,45 @@ router.get('/avatar/:userId', async (req: Request, res: Response, next: NextFunc
       where: { userId },
     });
 
-    const themeSettings =
-      profile && typeof profile.themeSettings === 'object' && profile.themeSettings !== null
-        ? (profile.themeSettings as Record<string, any>)
-        : null;
-
-    const dataUri = themeSettings?.avatar_data_url;
-    if (!dataUri || typeof dataUri !== 'string') {
+    if (!profile) {
       res.status(404).json({ error: 'Avatar not found' });
       return;
     }
 
-    const match = /^data:image\/(jpeg|jpg|png|webp|gif);base64,([A-Za-z0-9+/=\s]+)$/i.exec(dataUri);
-    if (!match) {
-      res.status(404).json({ error: 'Invalid avatar data' });
-      return;
+    const themeSettings =
+      profile.themeSettings && typeof profile.themeSettings === 'object'
+        ? (profile.themeSettings as Record<string, any>)
+        : {};
+
+    const dataUri = themeSettings?.avatar_data_url;
+    if (dataUri && typeof dataUri === 'string') {
+      const parsed = parseDataImageUri(dataUri);
+      if (parsed) {
+        res.setHeader('Content-Type', parsed.mimeType);
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        res.status(200).send(parsed.buffer);
+        return;
+      }
     }
 
-    const format = match[1].toLowerCase() === 'jpg' ? 'jpeg' : match[1].toLowerCase();
-    const buffer = Buffer.from(match[2].replace(/\s/g, ''), 'base64');
+    // Disk fallback if avatarUrl points to a local file
+    if (profile.avatarUrl && typeof profile.avatarUrl === 'string') {
+      const filenameMatch = /([^/?#]+)$/.exec(profile.avatarUrl);
+      if (filenameMatch) {
+        const diskBuf = readFromDiskIfPossible('avatars', filenameMatch[1]);
+        if (diskBuf) {
+          const ext = filenameMatch[1].split('.').pop()?.toLowerCase() || 'jpeg';
+          res.setHeader('Content-Type', ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg');
+          res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          res.status(200).send(diskBuf);
+          return;
+        }
+      }
+    }
 
-    res.setHeader('Content-Type', `image/${format}`);
-    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    res.status(200).send(buffer);
+    res.status(404).json({ error: 'Avatar not found' });
   } catch (error) {
     next(error);
   }
@@ -91,7 +107,7 @@ router.get('/avatar/:userId', async (req: Request, res: Response, next: NextFunc
 
 /**
  * GET /api/public/cover/:userId
- * Serve the user's uploaded cover photo directly from MySQL.
+ * Serve the user's uploaded cover photo directly from MySQL (or disk fallback).
  */
 router.get('/cover/:userId', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -105,30 +121,127 @@ router.get('/cover/:userId', async (req: Request, res: Response, next: NextFunct
       where: { userId },
     });
 
-    const themeSettings =
-      profile && typeof profile.themeSettings === 'object' && profile.themeSettings !== null
-        ? (profile.themeSettings as Record<string, any>)
-        : null;
-
-    const dataUri = themeSettings?.cover_data_url;
-    if (!dataUri || typeof dataUri !== 'string') {
+    if (!profile) {
       res.status(404).json({ error: 'Cover not found' });
       return;
     }
 
-    const match = /^data:image\/(jpeg|jpg|png|webp|gif);base64,([A-Za-z0-9+/=\s]+)$/i.exec(dataUri);
-    if (!match) {
-      res.status(404).json({ error: 'Invalid cover data' });
+    const themeSettings =
+      profile.themeSettings && typeof profile.themeSettings === 'object'
+        ? (profile.themeSettings as Record<string, any>)
+        : {};
+
+    const dataUri =
+      themeSettings?.cover_data_url ||
+      (typeof themeSettings?.cover_url === 'string' && themeSettings.cover_url.startsWith('data:image/')
+        ? themeSettings.cover_url
+        : null);
+
+    if (dataUri && typeof dataUri === 'string') {
+      const parsed = parseDataImageUri(dataUri);
+      if (parsed) {
+        res.setHeader('Content-Type', parsed.mimeType);
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        res.status(200).send(parsed.buffer);
+        return;
+      }
+    }
+
+    // Disk fallback if cover_url points to a local file
+    if (themeSettings?.cover_url && typeof themeSettings.cover_url === 'string') {
+      const filenameMatch = /([^/?#]+)$/.exec(themeSettings.cover_url);
+      if (filenameMatch) {
+        const diskBuf = readFromDiskIfPossible('covers', filenameMatch[1]);
+        if (diskBuf) {
+          const ext = filenameMatch[1].split('.').pop()?.toLowerCase() || 'jpeg';
+          res.setHeader('Content-Type', ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg');
+          res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          res.status(200).send(diskBuf);
+          return;
+        }
+      }
+    }
+
+    res.status(404).json({ error: 'Cover not found' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/public/link-logo/:linkId
+ * Serve custom link logo/thumbnail directly from MySQL (or pending upload buffer).
+ */
+router.get('/link-logo/:linkId', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const rawId = String(req.params.linkId || '').trim();
+    if (!rawId) {
+      res.status(404).json({ error: 'Logo not found' });
       return;
     }
 
-    const format = match[1].toLowerCase() === 'jpg' ? 'jpeg' : match[1].toLowerCase();
-    const buffer = Buffer.from(match[2].replace(/\s/g, ''), 'base64');
+    // Case 1: Temporary pending logo created before link is saved (temp_${userId}_${token})
+    const tempMatch = /^temp_([^_]+)_(.+)$/.exec(rawId);
+    if (tempMatch) {
+      const userId = tempMatch[1];
+      const token = tempMatch[2];
+      const profile = await prisma.profile.findUnique({ where: { userId } });
+      const themeSettings = (profile?.themeSettings as Record<string, any>) || {};
+      const pendingDataUri = themeSettings?.pending_logos?.[token];
+      if (pendingDataUri && typeof pendingDataUri === 'string') {
+        const parsed = parseDataImageUri(pendingDataUri);
+        if (parsed) {
+          res.setHeader('Content-Type', parsed.mimeType);
+          res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          res.status(200).send(parsed.buffer);
+          return;
+        }
+      }
+    }
 
-    res.setHeader('Content-Type', `image/${format}`);
-    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    res.status(200).send(buffer);
+    // Case 2: Saved link record
+    const link = await prisma.link.findUnique({
+      where: { id: rawId },
+    });
+
+    if (link) {
+      const utmParams = (link.utmParams as Record<string, any>) || {};
+      const dataUri =
+        utmParams?.logo_data_url ||
+        (link.thumbnailUrl && link.thumbnailUrl.startsWith('data:image/') ? link.thumbnailUrl : null);
+
+      if (dataUri && typeof dataUri === 'string') {
+        const parsed = parseDataImageUri(dataUri);
+        if (parsed) {
+          res.setHeader('Content-Type', parsed.mimeType);
+          res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          res.status(200).send(parsed.buffer);
+          return;
+        }
+      }
+
+      // Disk fallback
+      if (link.thumbnailUrl && typeof link.thumbnailUrl === 'string') {
+        const filenameMatch = /([^/?#]+)$/.exec(link.thumbnailUrl);
+        if (filenameMatch) {
+          const diskBuf = readFromDiskIfPossible('links', filenameMatch[1]);
+          if (diskBuf) {
+            const ext = filenameMatch[1].split('.').pop()?.toLowerCase() || 'png';
+            res.setHeader('Content-Type', ext === 'png' ? 'image/png' : ext === 'svg' ? 'image/svg+xml' : 'image/jpeg');
+            res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+            res.status(200).send(diskBuf);
+            return;
+          }
+        }
+      }
+    }
+
+    res.status(404).json({ error: 'Logo not found' });
   } catch (error) {
     next(error);
   }
