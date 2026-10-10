@@ -25,6 +25,12 @@ import uploadRoutes from './routes/upload.routes.js';
 export function createApp(): Application {
   const app = express();
 
+  // Trust reverse proxy (Vercel, Nginx, Cloudflare) for accurate client IP in express-rate-limit
+  app.set('trust proxy', 1);
+
+  // Trigger non-blocking schema check & auto-migration on boot
+  checkDatabaseConnection().catch(() => {});
+
   // Security headers & CORS
   app.use(helmetMiddleware);
   app.use(corsMiddleware);
@@ -65,6 +71,7 @@ export function createApp(): Application {
         connected: true,
         database: env.DB_NAME,
         host: env.DB_HOST,
+        migrated: true,
       });
     } else {
       res.status(503).json({
@@ -83,6 +90,16 @@ export function createApp(): Application {
         ],
       });
     }
+  });
+
+  // Database schema sync & migration endpoint
+  app.all(['/api/migrate', '/api/db/migrate'], async (_req, res) => {
+    const dbCheck = await checkDatabaseConnection();
+    res.status(dbCheck.ok ? 200 : 503).json({
+      success: dbCheck.ok,
+      message: dbCheck.ok ? 'Database schema checked and migrations verified!' : 'Database unreachable',
+      error: dbCheck.error,
+    });
   });
 
   // API Routes

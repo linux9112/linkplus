@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client';
 import { requireAuth } from '../middleware/auth.middleware.js';
 import { validateDestinationUrl } from '../utils/ssrf.js';
 import { parseDataImageUri } from '../utils/image-storage.js';
+import { autoMigrateDatabase } from '../db/check-connection.js';
 
 const router = Router();
 
@@ -24,6 +25,11 @@ export function isValidHexColor(color: unknown): boolean {
 }
 
 export function formatLink(link: any) {
+  const appearance =
+    link.utmParams && typeof link.utmParams === 'object' ? (link.utmParams as any).appearance : null;
+  const resolvedBg = link.backgroundColor ?? appearance?.backgroundColor ?? appearance?.background_color ?? null;
+  const resolvedText = link.textColor ?? appearance?.textColor ?? appearance?.text_color ?? null;
+
   return {
     id: link.id,
     user_id: link.userId,
@@ -47,10 +53,10 @@ export function formatLink(link: any) {
     category: link.category,
     custom_label: link.customLabel,
     customLabel: link.customLabel,
-    background_color: link.backgroundColor ?? null,
-    backgroundColor: link.backgroundColor ?? null,
-    text_color: link.textColor ?? null,
-    textColor: link.textColor ?? null,
+    background_color: resolvedBg,
+    backgroundColor: resolvedBg,
+    text_color: resolvedText,
+    textColor: resolvedText,
     media_type: link.mediaType,
     mediaType: link.mediaType,
     mediaUrl: link.mediaUrl,
@@ -69,15 +75,107 @@ export function formatLink(link: any) {
 }
 
 /**
+ * Resiliently executes prisma.link.create with automatic schema migration and fallback.
+ */
+async function safeCreateLink(data: any): Promise<any> {
+  try {
+    return await prisma.link.create({ data });
+  } catch (err: any) {
+    const msg = String(err.message || '');
+    if (
+      msg.includes('background_color') ||
+      msg.includes('text_color') ||
+      msg.includes('Unknown column') ||
+      err.code === 'P2022'
+    ) {
+      await autoMigrateDatabase().catch(() => {});
+      try {
+        return await prisma.link.create({ data });
+      } catch {
+        // Fallback: omit non-existent columns and preserve values in utmParams.appearance
+        const { backgroundColor, textColor, utmParams, ...safeData } = data;
+        const fallbackUtm = {
+          ...(typeof utmParams === 'object' && utmParams !== null ? utmParams : {}),
+          appearance: { backgroundColor, textColor },
+        };
+        return await prisma.link.create({
+          data: {
+            ...safeData,
+            utmParams: fallbackUtm,
+          },
+        });
+      }
+    }
+    throw err;
+  }
+}
+
+/**
+ * Resiliently executes prisma.link.update with automatic schema migration and fallback.
+ */
+async function safeUpdateLink(id: string, data: any): Promise<any> {
+  try {
+    return await prisma.link.update({ where: { id }, data });
+  } catch (err: any) {
+    const msg = String(err.message || '');
+    if (
+      msg.includes('background_color') ||
+      msg.includes('text_color') ||
+      msg.includes('Unknown column') ||
+      err.code === 'P2022'
+    ) {
+      await autoMigrateDatabase().catch(() => {});
+      try {
+        return await prisma.link.update({ where: { id }, data });
+      } catch {
+        // Fallback: omit non-existent columns and preserve values in utmParams.appearance
+        const { backgroundColor, textColor, utmParams, ...safeData } = data;
+        const fallbackUtm = {
+          ...(typeof utmParams === 'object' && utmParams !== null ? utmParams : {}),
+          appearance: { backgroundColor, textColor },
+        };
+        return await prisma.link.update({
+          where: { id },
+          data: {
+            ...safeData,
+            utmParams: fallbackUtm,
+          },
+        });
+      }
+    }
+    throw err;
+  }
+}
+
+/**
  * GET /api/links
  * List all links belonging to the authenticated user.
  */
 router.get('/', requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const links = await prisma.link.findMany({
-      where: { userId: req.user!.id },
-      orderBy: [{ isPinned: 'desc' }, { position: 'asc' }, { createdAt: 'desc' }],
-    });
+    let links;
+    try {
+      links = await prisma.link.findMany({
+        where: { userId: req.user!.id },
+        orderBy: [{ isPinned: 'desc' }, { position: 'asc' }, { createdAt: 'desc' }],
+      });
+    } catch (err: any) {
+      const msg = String(err.message || '');
+      if (
+        msg.includes('background_color') ||
+        msg.includes('text_color') ||
+        msg.includes('Unknown column') ||
+        err.code === 'P2022'
+      ) {
+        await autoMigrateDatabase().catch(() => {});
+        links = await prisma.link.findMany({
+          where: { userId: req.user!.id },
+          orderBy: [{ isPinned: 'desc' }, { position: 'asc' }, { createdAt: 'desc' }],
+        });
+      } else {
+        throw err;
+      }
+    }
     res.status(200).json({ links: links.map(formatLink) });
   } catch (error) {
     next(error);
@@ -243,10 +341,9 @@ router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunc
       }
     }
 
-    let link = await prisma.link.create({
-      data: {
-        userId: req.user!.id,
-        title: sanitizeHtml(title.trim().slice(0, 255)),
+    let link = await safeCreateLink({
+      userId: req.user!.id,
+      title: sanitizeHtml(title.trim().slice(0, 255)),
         destinationUrl: destinationUrl.trim(),
         description: description ? sanitizeHtml(String(description).trim().slice(0, 1000)) : null,
         icon: icon ? String(icon).trim().slice(0, 100) : null,
@@ -265,7 +362,6 @@ router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunc
         position,
         scheduledStart: scheduledStart ? new Date(scheduledStart) : null,
         scheduledEnd: scheduledEnd ? new Date(scheduledEnd) : null,
-      },
     });
 
     if (initialThumbnailUrl && initialThumbnailUrl.includes('temp_') && initialUtmParams?.logo_data_url) {
@@ -406,46 +502,43 @@ router.put('/:id', requireAuth, async (req: Request, res: Response, next: NextFu
       }
     }
 
-    const link = await prisma.link.update({
-      where: { id },
-      data: {
-        title: title !== undefined ? sanitizeHtml(String(title).trim().slice(0, 255)) : existing.title,
-        destinationUrl: destinationUrl !== undefined ? String(destinationUrl).trim() : existing.destinationUrl,
-        description:
-          description !== undefined
-            ? description
-              ? sanitizeHtml(String(description).trim().slice(0, 1000))
-              : null
-            : existing.description,
-        icon: icon !== undefined ? (icon ? String(icon).trim().slice(0, 100) : null) : existing.icon,
-        thumbnailUrl: updatedThumbnailUrl,
-        isHidden: isHidden !== undefined ? Boolean(isHidden) : existing.isHidden,
-        isPinned: isPinned !== undefined ? Boolean(isPinned) : existing.isPinned,
-        isActive: isActive !== undefined ? Boolean(isActive) : existing.isActive,
-        isFeatured: isFeatured !== undefined ? Boolean(isFeatured) : existing.isFeatured,
-        category:
-          category !== undefined
-            ? category
-              ? sanitizeHtml(String(category).trim().slice(0, 100))
-              : null
-            : existing.category,
-        customLabel:
-          customLabel !== undefined
-            ? customLabel
-              ? sanitizeHtml(String(customLabel).trim().slice(0, 100))
-              : null
-            : existing.customLabel,
-        backgroundColor: updatedBgColor,
-        textColor: updatedTextColor,
-        mediaType: mediaType !== undefined ? (mediaType ? String(mediaType).trim() : null) : existing.mediaType,
-        mediaUrl: mediaUrl !== undefined ? (mediaUrl ? String(mediaUrl).trim() : null) : existing.mediaUrl,
-        utmParams: Object.keys(updatedUtmParams).length ? updatedUtmParams : Prisma.DbNull,
-        position: position !== undefined ? Number(position) : existing.position,
-        scheduledStart:
-          scheduledStart !== undefined ? (scheduledStart ? new Date(scheduledStart) : null) : existing.scheduledStart,
-        scheduledEnd:
-          scheduledEnd !== undefined ? (scheduledEnd ? new Date(scheduledEnd) : null) : existing.scheduledEnd,
-      },
+    const link = await safeUpdateLink(id, {
+      title: title !== undefined ? sanitizeHtml(String(title).trim().slice(0, 255)) : existing.title,
+      destinationUrl: destinationUrl !== undefined ? String(destinationUrl).trim() : existing.destinationUrl,
+      description:
+        description !== undefined
+          ? description
+            ? sanitizeHtml(String(description).trim().slice(0, 1000))
+            : null
+          : existing.description,
+      icon: icon !== undefined ? (icon ? String(icon).trim().slice(0, 100) : null) : existing.icon,
+      thumbnailUrl: updatedThumbnailUrl,
+      isHidden: isHidden !== undefined ? Boolean(isHidden) : existing.isHidden,
+      isPinned: isPinned !== undefined ? Boolean(isPinned) : existing.isPinned,
+      isActive: isActive !== undefined ? Boolean(isActive) : existing.isActive,
+      isFeatured: isFeatured !== undefined ? Boolean(isFeatured) : existing.isFeatured,
+      category:
+        category !== undefined
+          ? category
+            ? sanitizeHtml(String(category).trim().slice(0, 100))
+            : null
+          : existing.category,
+      customLabel:
+        customLabel !== undefined
+          ? customLabel
+            ? sanitizeHtml(String(customLabel).trim().slice(0, 100))
+            : null
+          : existing.customLabel,
+      backgroundColor: updatedBgColor,
+      textColor: updatedTextColor,
+      mediaType: mediaType !== undefined ? (mediaType ? String(mediaType).trim() : null) : existing.mediaType,
+      mediaUrl: mediaUrl !== undefined ? (mediaUrl ? String(mediaUrl).trim() : null) : existing.mediaUrl,
+      utmParams: Object.keys(updatedUtmParams).length ? updatedUtmParams : Prisma.DbNull,
+      position: position !== undefined ? Number(position) : existing.position,
+      scheduledStart:
+        scheduledStart !== undefined ? (scheduledStart ? new Date(scheduledStart) : null) : existing.scheduledStart,
+      scheduledEnd:
+        scheduledEnd !== undefined ? (scheduledEnd ? new Date(scheduledEnd) : null) : existing.scheduledEnd,
     });
 
     res.status(200).json({ link: formatLink(link) });
