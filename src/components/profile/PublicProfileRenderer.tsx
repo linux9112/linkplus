@@ -446,7 +446,7 @@ export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
   const avatarShape = (rawTheme.avatar_shape as string) || 'circle';
   const avatarBorderWidth = typeof rawTheme.avatar_border_width === 'number' ? rawTheme.avatar_border_width : 4;
   const avatarBorderColor = (rawTheme.avatar_border_color as string) || '#ffffff';
-  const coverUrl = (rawTheme.cover_url as string) || (profile as any)?.cover_url || null;
+  const coverUrl = (rawTheme.cover_url as string) || (profile as any)?.cover_url || rawTheme.cover_data_url || null;
   const coverHeight = typeof rawTheme.cover_height === 'number' ? rawTheme.cover_height : 160;
 
   // Button settings
@@ -539,7 +539,7 @@ export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
     : [];
 
   const displayName = profile?.display_name || (profile as any)?.displayName || username;
-  const avatarUrl = profile?.avatar_url ?? (profile as any)?.avatarUrl ?? null;
+  const avatarUrl = profile?.avatar_url || (profile as any)?.avatarUrl || rawTheme.avatar_data_url || null;
   const tagline = (rawTheme.title_tagline as string) || (profile as any)?.title_tagline || (profile as any)?.tagline || null;
 
   // Group links by category
@@ -686,8 +686,11 @@ export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
     const isEmbedOpen = Boolean(expandedEmbeds[link.id]);
 
     const override = linkOverrides[link.id] || {};
-    const itemCardBg = override.button_color || customButtonColor;
-    const itemCardText = override.text_color || customButtonTextColor;
+    const linkBgColor = (link as any).background_color || (link as any).backgroundColor || override.button_color || null;
+    const linkTextColor = (link as any).text_color || (link as any).textColor || override.text_color || null;
+
+    const itemCardBg = linkBgColor || customButtonColor;
+    const itemCardText = linkTextColor || customButtonTextColor;
     const itemCardBorder = override.border_color || customButtonBorderColor;
     const itemButtonShape = override.button_shape || buttonShape;
     const itemButtonStyle = override.button_style || buttonStyle;
@@ -703,10 +706,10 @@ export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
       cardStyle.borderRadius = `${buttonCustomRadius}px`;
     }
 
-    if (itemButtonStyle === 'outline') {
+    if (itemButtonStyle === 'outline' && !linkBgColor) {
       cardStyle.backgroundColor = 'transparent';
       cardStyle.borderColor = itemCardText;
-    } else if (itemButtonStyle === 'glass') {
+    } else if (itemButtonStyle === 'glass' && !linkBgColor) {
       cardStyle.backdropFilter = `blur(${glassBlur}px)`;
       cardStyle.WebkitBackdropFilter = `blur(${glassBlur}px)`;
     } else if (itemButtonStyle === 'brutal') {
@@ -715,6 +718,14 @@ export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
       cardStyle.borderColor = '#111827';
     } else if (itemButtonStyle === 'shadow') {
       cardStyle.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+    }
+
+    if (linkBgColor) {
+      cardStyle.backgroundColor = linkBgColor;
+      cardStyle.backgroundImage = 'none';
+      if (!isFeatured && !override.border_color) {
+        cardStyle.borderColor = 'rgba(255, 255, 255, 0.18)';
+      }
     }
 
     const paddingClass =
@@ -823,7 +834,9 @@ export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
                   )}
                 </div>
                 {link.description && (
-                  <p className="text-xs opacity-75 truncate mt-0.5">{link.description}</p>
+                  <p className="text-xs opacity-75 truncate mt-0.5" style={{ color: itemCardText }}>
+                    {link.description}
+                  </p>
                 )}
               </div>
             </div>
@@ -847,7 +860,10 @@ export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
                   {isEmbedOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                 </button>
               )}
-              <ChevronRight className="w-4 h-4 opacity-70 group-hover:opacity-100 group-hover:translate-x-1 transition-all shrink-0" />
+              <ChevronRight
+                className="w-4 h-4 opacity-70 group-hover:opacity-100 group-hover:translate-x-1 transition-all shrink-0"
+                style={{ color: itemCardText }}
+              />
             </div>
           </a>
 

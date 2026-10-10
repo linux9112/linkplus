@@ -1384,6 +1384,12 @@ export function getTestApp(): express.Application {
 }
 
 // Reset state before each test file
-beforeEach(() => {
-  resetTestDb();
-});
+try {
+  if (typeof beforeEach === 'function') {
+    beforeEach(() => {
+      resetTestDb();
+    });
+  }
+} catch {
+  // Ignore if runner context is not yet established
+}

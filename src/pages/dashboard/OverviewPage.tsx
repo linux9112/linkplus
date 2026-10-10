@@ -215,9 +215,11 @@ export const OverviewPage: React.FC = () => {
 
   const publicUrl = `${window.location.origin}/${user?.username || ''}`;
   const displayName = profile?.display_name || (profile as any)?.displayName || user?.username || 'Creator';
-  const avatarUrl = profile?.avatar_url ?? (profile as any)?.avatarUrl ?? null;
+  const rawTheme = (profile?.theme_settings || (profile as any)?.themeSettings || {}) as Record<string, any>;
+
+  const avatarUrl = profile?.avatar_url || (profile as any)?.avatarUrl || rawTheme.avatar_data_url || null;
   const bio = profile?.bio?.trim() || '';
-  const coverUrl = (profile?.theme_settings as any)?.cover_url || null;
+  const coverUrl = rawTheme.cover_url || rawTheme.cover_data_url || null;
 
   // Real social links from database
   const userSocials = Array.isArray(profile?.social_links)

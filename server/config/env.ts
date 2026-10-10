@@ -70,8 +70,20 @@ export const envSchema = z
       emptyToUndefined,
       z.string().min(8, 'ADMIN_BOOTSTRAP_PASSWORD must be at least 8 characters').optional()
     ),
+
+    // Centralized GitHub Image Storage Configuration
+    GITHUB_TOKEN: stringOrUndefined,
+    GITHUB_OWNER: z.preprocess(emptyToUndefined, z.string().default('linux9112')),
+    GITHUB_REPO: z.preprocess(emptyToUndefined, z.string().default('linkplus')),
+    GITHUB_BRANCH: z.preprocess(emptyToUndefined, z.string().default('main')),
+    GITHUB_PATH_PREFIX: z.preprocess(emptyToUndefined, z.string().default('uploads')),
   })
   .transform((data) => {
+    const isGitHubStorageConfigured = Boolean(
+      data.GITHUB_TOKEN && data.GITHUB_TOKEN.trim() !== '' &&
+      data.GITHUB_OWNER && data.GITHUB_OWNER.trim() !== '' &&
+      data.GITHUB_REPO && data.GITHUB_REPO.trim() !== ''
+    );
     let databaseUrl = data.DATABASE_URL;
     if (!databaseUrl || databaseUrl.trim() === '') {
       const encodedUser = encodeURIComponent(data.DB_USER);
@@ -103,6 +115,7 @@ export const envSchema = z
       ...data,
       DATABASE_URL: databaseUrl,
       ALLOWED_ORIGINS: Array.from(corsSet),
+      GITHUB_STORAGE_ENABLED: isGitHubStorageConfigured,
     };
   });
 

@@ -298,17 +298,28 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
-  const handleRemoveAvatar = () => {
-    setAvatarUrl('');
-    markDirty();
-    showToast('Profile photo removed', 'info');
+  const handleRemoveAvatar = async () => {
+    try {
+      await api.delete('/api/upload/image', { type: 'avatar' });
+      setAvatarUrl('');
+      markDirty();
+      showToast('Profile photo removed', 'info');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to remove profile photo', 'error');
+    }
   };
 
-  const handleRemoveCover = () => {
-    setCoverUrl('');
-    markDirty();
-    showToast('Cover photo removed', 'info');
+  const handleRemoveCover = async () => {
+    try {
+      await api.delete('/api/upload/image', { type: 'cover' });
+      setCoverUrl('');
+      markDirty();
+      showToast('Cover photo removed', 'info');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to remove cover photo', 'error');
+    }
   };
+
 
   const handleRemoveLinkLogo = async (linkId: string) => {
     try {
@@ -336,11 +347,15 @@ export const ProfilePage: React.FC = () => {
     try {
       let finalThumbUrl: string | null = null;
       if (newLinkLogo) {
-        const uploadRes = await api.post<{ url: string }>('/api/upload/image', {
-          image_data: newLinkLogo,
-          type: 'link',
-        });
-        finalThumbUrl = uploadRes.url;
+        if (newLinkLogo.startsWith('data:image/')) {
+          const uploadRes = await api.post<{ url: string }>('/api/upload/image', {
+            image_data: newLinkLogo,
+            type: 'link',
+          });
+          finalThumbUrl = uploadRes.url;
+        } else {
+          finalThumbUrl = newLinkLogo;
+        }
       }
 
       const res = await api.post<{ link: LinkItem }>('/api/links', {

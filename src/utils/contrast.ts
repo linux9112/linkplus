@@ -120,3 +120,41 @@ export function sanitizeCustomCss(rawCss: string, scopeSelector = '.linkplus-pro
 
   return scopedRules.filter(Boolean).join('\n');
 }
+
+/**
+ * Validate hex color string (e.g. #FFF, #FFFFFF, or #FFFFFFFF)
+ */
+export function isValidHexColor(hex: string): boolean {
+  if (!hex || typeof hex !== 'string') return false;
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(hex.trim());
+}
+
+/**
+ * Automatically calculate high-contrast text color based on background hex
+ * Returns '#FFFFFF' for dark backgrounds and '#171923' for light backgrounds
+ */
+export function autoContrastColor(bgHex: string): string {
+  if (!bgHex || typeof bgHex !== 'string') return '#FFFFFF';
+  const rgb = hexToRgb(bgHex.trim());
+  if (!rgb) return '#FFFFFF';
+  const lum = getRelativeLuminance(rgb);
+  return lum > 0.4 ? '#171923' : '#FFFFFF';
+}
+
+export interface LinkColorPreset {
+  id: string;
+  label: string;
+  bg: string;
+  text: string;
+}
+
+export const LINK_COLOR_PRESETS: LinkColorPreset[] = [
+  { id: 'default', label: 'Default Theme', bg: '', text: '' },
+  { id: 'midnight', label: 'Midnight', bg: '#202430', text: '#FFFFFF' },
+  { id: 'ocean', label: 'Ocean', bg: '#2563EB', text: '#FFFFFF' },
+  { id: 'emerald', label: 'Emerald', bg: '#047857', text: '#FFFFFF' },
+  { id: 'sunset', label: 'Sunset', bg: '#EA580C', text: '#FFFFFF' },
+  { id: 'light', label: 'Light', bg: '#FFFFFF', text: '#171923' },
+  { id: 'custom', label: 'Custom', bg: '', text: '' },
+];
+

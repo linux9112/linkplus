@@ -56,6 +56,8 @@ CREATE TABLE IF NOT EXISTS links (
   is_featured TINYINT(1) NOT NULL DEFAULT 0,
   category VARCHAR(100) NULL,
   custom_label VARCHAR(100) NULL,
+  background_color VARCHAR(50) NULL,
+  text_color VARCHAR(50) NULL,
   media_type VARCHAR(50) NULL,
   media_url VARCHAR(2048) NULL,
   utm_params JSON NULL,

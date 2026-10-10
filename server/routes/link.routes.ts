@@ -1,8 +1,11 @@
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../db/prisma.js';
+import { Prisma } from '@prisma/client';
+
 import { requireAuth } from '../middleware/auth.middleware.js';
 import { validateDestinationUrl } from '../utils/ssrf.js';
+import { parseDataImageUri } from '../utils/image-storage.js';
 
 const router = Router();
 
@@ -13,6 +16,11 @@ function sanitizeHtml(input: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+export function isValidHexColor(color: unknown): boolean {
+  if (!color || typeof color !== 'string') return false;
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(color.trim());
 }
 
 export function formatLink(link: any) {
@@ -39,10 +47,14 @@ export function formatLink(link: any) {
     category: link.category,
     custom_label: link.customLabel,
     customLabel: link.customLabel,
+    background_color: link.backgroundColor ?? null,
+    backgroundColor: link.backgroundColor ?? null,
+    text_color: link.textColor ?? null,
+    textColor: link.textColor ?? null,
     media_type: link.mediaType,
     mediaType: link.mediaType,
-    media_url: link.mediaUrl,
     mediaUrl: link.mediaUrl,
+    media_url: link.mediaUrl,
     utm_params: link.utmParams,
     utmParams: link.utmParams,
     click_count: link.clickCount,
@@ -141,6 +153,8 @@ router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunc
     const isFeatured = body.is_featured !== undefined ? body.is_featured : body.isFeatured;
     const category = body.category;
     const customLabel = body.custom_label !== undefined ? body.custom_label : body.customLabel;
+    const backgroundColor = body.background_color !== undefined ? body.background_color : body.backgroundColor;
+    const textColor = body.text_color !== undefined ? body.text_color : body.textColor;
     const mediaType = body.media_type !== undefined ? body.media_type : body.mediaType;
     const mediaUrl = body.media_url !== undefined ? body.media_url : body.mediaUrl;
     const utmParams = body.utm_params !== undefined ? body.utm_params : body.utmParams;
@@ -170,34 +184,97 @@ router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunc
       }
     }
 
+    let validatedBgColor: string | null = null;
+    if (backgroundColor !== undefined && backgroundColor !== null && String(backgroundColor).trim() !== '') {
+      const trimmedBg = String(backgroundColor).trim();
+      if (!isValidHexColor(trimmedBg)) {
+        res.status(400).json({ error: 'Background color must be a valid hex color code (e.g. #4F46E5)', field: 'background_color' });
+        return;
+      }
+      validatedBgColor = trimmedBg;
+    }
+
+    let validatedTextColor: string | null = null;
+    if (textColor !== undefined && textColor !== null && String(textColor).trim() !== '') {
+      const trimmedText = String(textColor).trim();
+      if (!isValidHexColor(trimmedText)) {
+        res.status(400).json({ error: 'Text color must be a valid hex color code (e.g. #FFFFFF)', field: 'text_color' });
+        return;
+      }
+      validatedTextColor = trimmedText;
+    }
+
     const maxLink = await prisma.link.findFirst({
       where: { userId: req.user!.id },
       orderBy: { position: 'desc' },
     });
     const position = maxLink ? maxLink.position + 1 : 0;
 
-    const link = await prisma.link.create({
+    let initialThumbnailUrl: string | null = thumbnailUrl ? String(thumbnailUrl).trim().slice(0, 1000) : null;
+    let initialUtmParams: Record<string, any> | null = utmParams && typeof utmParams === 'object' ? { ...utmParams } : null;
+
+    if (initialThumbnailUrl) {
+      const filenameMatch = /([^/?#]+)$/.exec(initialThumbnailUrl);
+      const filename = filenameMatch ? filenameMatch[1] : '';
+      const tempMatch = /temp_[^_]+_([a-zA-Z0-9_-]+)/.exec(initialThumbnailUrl);
+      const token = tempMatch ? tempMatch[1] : filename;
+
+      const profile = await prisma.profile.findUnique({ where: { userId: req.user!.id } });
+      const themeSettings = (profile?.themeSettings as Record<string, any>) || {};
+      const pendingDataUri = themeSettings?.pending_logos?.[token] || themeSettings?.pending_logos?.[filename];
+
+      if (pendingDataUri) {
+        initialUtmParams = initialUtmParams || {};
+        initialUtmParams.logo_data_url = pendingDataUri;
+        if (themeSettings.pending_logos) {
+          delete themeSettings.pending_logos[token];
+          delete themeSettings.pending_logos[filename];
+          await prisma.profile.update({
+            where: { userId: req.user!.id },
+            data: { themeSettings },
+          }).catch(() => {});
+        }
+      } else if (initialThumbnailUrl.startsWith('data:image/')) {
+        const parsed = parseDataImageUri(initialThumbnailUrl);
+        if (parsed) {
+          initialUtmParams = initialUtmParams || {};
+          initialUtmParams.logo_data_url = initialThumbnailUrl;
+        }
+      }
+    }
+
+    let link = await prisma.link.create({
       data: {
         userId: req.user!.id,
         title: sanitizeHtml(title.trim().slice(0, 255)),
         destinationUrl: destinationUrl.trim(),
         description: description ? sanitizeHtml(String(description).trim().slice(0, 1000)) : null,
         icon: icon ? String(icon).trim().slice(0, 100) : null,
-        thumbnailUrl: thumbnailUrl ? String(thumbnailUrl).trim().slice(0, 1000) : null,
+        thumbnailUrl: initialThumbnailUrl,
         isHidden: Boolean(isHidden),
         isPinned: Boolean(isPinned),
         isFeatured: Boolean(isFeatured),
         isActive: isActive !== undefined ? Boolean(isActive) : true,
         category: category ? sanitizeHtml(String(category).trim().slice(0, 100)) : null,
         customLabel: customLabel ? sanitizeHtml(String(customLabel).trim().slice(0, 100)) : null,
+        backgroundColor: validatedBgColor,
+        textColor: validatedTextColor,
         mediaType: mediaType ? String(mediaType).trim().slice(0, 50) : null,
         mediaUrl: mediaUrl ? String(mediaUrl).trim().slice(0, 2048) : null,
-        utmParams: utmParams && typeof utmParams === 'object' ? utmParams : null,
+        utmParams: initialUtmParams ?? Prisma.DbNull,
         position,
         scheduledStart: scheduledStart ? new Date(scheduledStart) : null,
         scheduledEnd: scheduledEnd ? new Date(scheduledEnd) : null,
       },
     });
+
+    if (initialThumbnailUrl && initialThumbnailUrl.includes('temp_') && initialUtmParams?.logo_data_url) {
+      const permanentLogoUrl = `/api/public/link-logo/${link.id}?v=${Date.now()}`;
+      link = await prisma.link.update({
+        where: { id: link.id },
+        data: { thumbnailUrl: permanentLogoUrl },
+      });
+    }
 
     res.status(201).json({ link: formatLink(link) });
   } catch (error) {
@@ -234,6 +311,8 @@ router.put('/:id', requireAuth, async (req: Request, res: Response, next: NextFu
     const isFeatured = body.is_featured !== undefined ? body.is_featured : body.isFeatured;
     const category = body.category;
     const customLabel = body.custom_label !== undefined ? body.custom_label : body.customLabel;
+    const backgroundColor = body.background_color !== undefined ? body.background_color : body.backgroundColor;
+    const textColor = body.text_color !== undefined ? body.text_color : body.textColor;
     const mediaType = body.media_type !== undefined ? body.media_type : body.mediaType;
     const mediaUrl = body.media_url !== undefined ? body.media_url : body.mediaUrl;
     const utmParams = body.utm_params !== undefined ? body.utm_params : body.utmParams;
@@ -249,6 +328,84 @@ router.put('/:id', requireAuth, async (req: Request, res: Response, next: NextFu
       }
     }
 
+    let updatedBgColor: string | null = existing.backgroundColor;
+    if (backgroundColor !== undefined) {
+      if (backgroundColor === null || String(backgroundColor).trim() === '') {
+        updatedBgColor = null;
+      } else {
+        const trimmedBg = String(backgroundColor).trim();
+        if (!isValidHexColor(trimmedBg)) {
+          res.status(400).json({ error: 'Background color must be a valid hex color code (e.g. #4F46E5)', field: 'background_color' });
+          return;
+        }
+        updatedBgColor = trimmedBg;
+      }
+    }
+
+    let updatedTextColor: string | null = existing.textColor;
+    if (textColor !== undefined) {
+      if (textColor === null || String(textColor).trim() === '') {
+        updatedTextColor = null;
+      } else {
+        const trimmedText = String(textColor).trim();
+        if (!isValidHexColor(trimmedText)) {
+          res.status(400).json({ error: 'Text color must be a valid hex color code (e.g. #FFFFFF)', field: 'text_color' });
+          return;
+        }
+        updatedTextColor = trimmedText;
+      }
+    }
+
+    let updatedThumbnailUrl: string | null = existing.thumbnailUrl;
+    let updatedUtmParams: Record<string, any> =
+      utmParams !== undefined
+        ? utmParams && typeof utmParams === 'object'
+          ? { ...utmParams }
+          : {}
+        : existing.utmParams && typeof existing.utmParams === 'object'
+        ? { ...(existing.utmParams as any) }
+        : {};
+
+    if (thumbnailUrl !== undefined) {
+      const rawThumb = thumbnailUrl ? String(thumbnailUrl).trim() : '';
+      if (!rawThumb) {
+        updatedThumbnailUrl = null;
+        delete updatedUtmParams.logo_data_url;
+      } else {
+        const filenameMatch = /([^/?#]+)$/.exec(rawThumb);
+        const filename = filenameMatch ? filenameMatch[1] : '';
+        const tempMatch = /temp_[^_]+_([a-zA-Z0-9_-]+)/.exec(rawThumb);
+        const token = tempMatch ? tempMatch[1] : filename;
+
+        const profile = await prisma.profile.findUnique({ where: { userId: req.user!.id } });
+        const themeSettings = (profile?.themeSettings as Record<string, any>) || {};
+        const pendingDataUri = themeSettings?.pending_logos?.[token] || themeSettings?.pending_logos?.[filename];
+
+        if (pendingDataUri) {
+          updatedUtmParams.logo_data_url = pendingDataUri;
+          if (themeSettings.pending_logos) {
+            delete themeSettings.pending_logos[token];
+            delete themeSettings.pending_logos[filename];
+            await prisma.profile.update({
+              where: { userId: req.user!.id },
+              data: { themeSettings },
+            }).catch(() => {});
+          }
+          updatedThumbnailUrl = rawThumb.includes('temp_') ? `/api/public/link-logo/${id}?v=${Date.now()}` : rawThumb;
+        } else if (rawThumb.startsWith('data:image/')) {
+          const parsed = parseDataImageUri(rawThumb);
+          if (parsed) {
+            updatedUtmParams.logo_data_url = rawThumb;
+            updatedThumbnailUrl = `/api/public/link-logo/${id}?v=${Date.now()}`;
+          } else {
+            updatedThumbnailUrl = rawThumb.slice(0, 1000);
+          }
+        } else {
+          updatedThumbnailUrl = rawThumb.slice(0, 1000);
+        }
+      }
+    }
+
     const link = await prisma.link.update({
       where: { id },
       data: {
@@ -261,12 +418,7 @@ router.put('/:id', requireAuth, async (req: Request, res: Response, next: NextFu
               : null
             : existing.description,
         icon: icon !== undefined ? (icon ? String(icon).trim().slice(0, 100) : null) : existing.icon,
-        thumbnailUrl:
-          thumbnailUrl !== undefined
-            ? thumbnailUrl
-              ? String(thumbnailUrl).trim().slice(0, 1000)
-              : null
-            : existing.thumbnailUrl,
+        thumbnailUrl: updatedThumbnailUrl,
         isHidden: isHidden !== undefined ? Boolean(isHidden) : existing.isHidden,
         isPinned: isPinned !== undefined ? Boolean(isPinned) : existing.isPinned,
         isActive: isActive !== undefined ? Boolean(isActive) : existing.isActive,
@@ -283,9 +435,11 @@ router.put('/:id', requireAuth, async (req: Request, res: Response, next: NextFu
               ? sanitizeHtml(String(customLabel).trim().slice(0, 100))
               : null
             : existing.customLabel,
+        backgroundColor: updatedBgColor,
+        textColor: updatedTextColor,
         mediaType: mediaType !== undefined ? (mediaType ? String(mediaType).trim() : null) : existing.mediaType,
         mediaUrl: mediaUrl !== undefined ? (mediaUrl ? String(mediaUrl).trim() : null) : existing.mediaUrl,
-        utmParams: utmParams !== undefined ? utmParams : (existing.utmParams as any),
+        utmParams: Object.keys(updatedUtmParams).length ? updatedUtmParams : Prisma.DbNull,
         position: position !== undefined ? Number(position) : existing.position,
         scheduledStart:
           scheduledStart !== undefined ? (scheduledStart ? new Date(scheduledStart) : null) : existing.scheduledStart,
@@ -413,6 +567,8 @@ router.post('/:id/duplicate', requireAuth, async (req: Request, res: Response, n
         isFeatured: existing.isFeatured,
         category: existing.category,
         customLabel: existing.customLabel,
+        backgroundColor: existing.backgroundColor,
+        textColor: existing.textColor,
         mediaType: existing.mediaType,
         mediaUrl: existing.mediaUrl,
         utmParams: existing.utmParams as any,
