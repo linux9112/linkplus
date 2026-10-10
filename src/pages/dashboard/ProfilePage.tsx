@@ -252,14 +252,28 @@ export const ProfilePage: React.FC = () => {
   const handleCropApplied = async (croppedDataUri: string) => {
     if (cropTarget.type === 'avatar') {
       try {
-        const res = await api.post<{ url: string }>('/api/upload/image', {
+        const res = await api.post<{ url?: string; avatar_url?: string }>('/api/upload/image', {
           image_data: croppedDataUri,
           type: 'avatar',
         });
-        setAvatarUrl(res.url);
+        const finalUrl = res.url || res.avatar_url;
+        if (finalUrl) setAvatarUrl(finalUrl);
         markDirty();
         showToast('Profile photo updated!', 'success');
       } catch (err: any) {
+        // Resilient fallback to /api/profile/avatar
+        try {
+          const fallbackRes = await api.post<{ avatar_url?: string; url?: string }>('/api/profile/avatar', {
+            image_data: croppedDataUri,
+          });
+          const finalUrl = fallbackRes.avatar_url || fallbackRes.url;
+          if (finalUrl) {
+            setAvatarUrl(finalUrl);
+            markDirty();
+            showToast('Profile photo updated!', 'success');
+            return;
+          }
+        } catch {}
         showToast(err.message || 'Failed to save avatar', 'error');
       }
     } else if (cropTarget.type === 'cover') {

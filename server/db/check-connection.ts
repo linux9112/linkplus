@@ -64,6 +64,54 @@ export function formatTroubleshootingGuide(err: unknown): string {
 }
 
 /**
+ * Automatically applies non-destructive schema migrations (such as adding per-link appearance columns).
+ * Idempotent and compatible across MariaDB 10/11 and MySQL 5.7/8.0.
+ */
+export async function autoMigrateDatabase(): Promise<boolean> {
+  try {
+    const connection = await pool.getConnection();
+    try {
+      // 1. Add background_color column if not exists
+      try {
+        await connection.query(`
+          ALTER TABLE links 
+          ADD COLUMN IF NOT EXISTS background_color VARCHAR(50) NULL AFTER custom_label
+        `);
+      } catch {
+        const [cols]: any = await connection.query(
+          "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'links' AND COLUMN_NAME = 'background_color'"
+        );
+        if (!cols || cols.length === 0) {
+          await connection.query('ALTER TABLE links ADD COLUMN background_color VARCHAR(50) NULL');
+        }
+      }
+
+      // 2. Add text_color column if not exists
+      try {
+        await connection.query(`
+          ALTER TABLE links 
+          ADD COLUMN IF NOT EXISTS text_color VARCHAR(50) NULL AFTER background_color
+        `);
+      } catch {
+        const [cols]: any = await connection.query(
+          "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'links' AND COLUMN_NAME = 'text_color'"
+        );
+        if (!cols || cols.length === 0) {
+          await connection.query('ALTER TABLE links ADD COLUMN text_color VARCHAR(50) NULL');
+        }
+      }
+
+      return true;
+    } finally {
+      connection.release();
+    }
+  } catch (err: any) {
+    console.warn('[AutoMigrate] Schema check notice:', err.message);
+    return false;
+  }
+}
+
+/**
  * Tests database connectivity via the connection pool.
  * If unreachable, prints a full diagnostic guide and returns { ok: false, error }.
  */
@@ -72,6 +120,8 @@ export async function checkDatabaseConnection(): Promise<DatabaseConnectionResul
     const connection = await pool.getConnection();
     try {
       await connection.ping();
+      // Auto-migrate schema on successful connection
+      await autoMigrateDatabase().catch(() => {});
       return { ok: true };
     } finally {
       connection.release();

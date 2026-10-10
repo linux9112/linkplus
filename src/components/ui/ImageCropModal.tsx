@@ -56,7 +56,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
         imageSrc,
         { zoom, offsetX, offsetY },
         512,
-        true
+        !isCircular
       );
       await onApply(finalUri);
       onClose();
