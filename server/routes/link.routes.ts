@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../db/prisma.js';
+import { Prisma } from '@prisma/client';
+
 import { requireAuth } from '../middleware/auth.middleware.js';
 import { validateDestinationUrl } from '../utils/ssrf.js';
 import { parseDataImageUri } from '../utils/image-storage.js';
@@ -14,6 +16,11 @@ function sanitizeHtml(input: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+export function isValidHexColor(color: unknown): boolean {
+  if (!color || typeof color !== 'string') return false;
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(color.trim());
 }
 
 export function formatLink(link: any) {
@@ -40,10 +47,14 @@ export function formatLink(link: any) {
     category: link.category,
     custom_label: link.customLabel,
     customLabel: link.customLabel,
+    background_color: link.backgroundColor ?? null,
+    backgroundColor: link.backgroundColor ?? null,
+    text_color: link.textColor ?? null,
+    textColor: link.textColor ?? null,
     media_type: link.mediaType,
     mediaType: link.mediaType,
-    media_url: link.mediaUrl,
     mediaUrl: link.mediaUrl,
+    media_url: link.mediaUrl,
     utm_params: link.utmParams,
     utmParams: link.utmParams,
     click_count: link.clickCount,
@@ -142,6 +153,8 @@ router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunc
     const isFeatured = body.is_featured !== undefined ? body.is_featured : body.isFeatured;
     const category = body.category;
     const customLabel = body.custom_label !== undefined ? body.custom_label : body.customLabel;
+    const backgroundColor = body.background_color !== undefined ? body.background_color : body.backgroundColor;
+    const textColor = body.text_color !== undefined ? body.text_color : body.textColor;
     const mediaType = body.media_type !== undefined ? body.media_type : body.mediaType;
     const mediaUrl = body.media_url !== undefined ? body.media_url : body.mediaUrl;
     const utmParams = body.utm_params !== undefined ? body.utm_params : body.utmParams;
@@ -169,6 +182,26 @@ router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunc
         res.status(400).json({ error: 'Invalid media embed URL', field: 'media_url' });
         return;
       }
+    }
+
+    let validatedBgColor: string | null = null;
+    if (backgroundColor !== undefined && backgroundColor !== null && String(backgroundColor).trim() !== '') {
+      const trimmedBg = String(backgroundColor).trim();
+      if (!isValidHexColor(trimmedBg)) {
+        res.status(400).json({ error: 'Background color must be a valid hex color code (e.g. #4F46E5)', field: 'background_color' });
+        return;
+      }
+      validatedBgColor = trimmedBg;
+    }
+
+    let validatedTextColor: string | null = null;
+    if (textColor !== undefined && textColor !== null && String(textColor).trim() !== '') {
+      const trimmedText = String(textColor).trim();
+      if (!isValidHexColor(trimmedText)) {
+        res.status(400).json({ error: 'Text color must be a valid hex color code (e.g. #FFFFFF)', field: 'text_color' });
+        return;
+      }
+      validatedTextColor = trimmedText;
     }
 
     const maxLink = await prisma.link.findFirst({
@@ -224,9 +257,11 @@ router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunc
         isActive: isActive !== undefined ? Boolean(isActive) : true,
         category: category ? sanitizeHtml(String(category).trim().slice(0, 100)) : null,
         customLabel: customLabel ? sanitizeHtml(String(customLabel).trim().slice(0, 100)) : null,
+        backgroundColor: validatedBgColor,
+        textColor: validatedTextColor,
         mediaType: mediaType ? String(mediaType).trim().slice(0, 50) : null,
         mediaUrl: mediaUrl ? String(mediaUrl).trim().slice(0, 2048) : null,
-        utmParams: initialUtmParams,
+        utmParams: initialUtmParams ?? Prisma.DbNull,
         position,
         scheduledStart: scheduledStart ? new Date(scheduledStart) : null,
         scheduledEnd: scheduledEnd ? new Date(scheduledEnd) : null,
@@ -276,6 +311,8 @@ router.put('/:id', requireAuth, async (req: Request, res: Response, next: NextFu
     const isFeatured = body.is_featured !== undefined ? body.is_featured : body.isFeatured;
     const category = body.category;
     const customLabel = body.custom_label !== undefined ? body.custom_label : body.customLabel;
+    const backgroundColor = body.background_color !== undefined ? body.background_color : body.backgroundColor;
+    const textColor = body.text_color !== undefined ? body.text_color : body.textColor;
     const mediaType = body.media_type !== undefined ? body.media_type : body.mediaType;
     const mediaUrl = body.media_url !== undefined ? body.media_url : body.mediaUrl;
     const utmParams = body.utm_params !== undefined ? body.utm_params : body.utmParams;
@@ -288,6 +325,34 @@ router.put('/:id', requireAuth, async (req: Request, res: Response, next: NextFu
       if (!validation.valid) {
         res.status(400).json({ error: validation.error || 'Invalid destination URL', field: 'destination_url' });
         return;
+      }
+    }
+
+    let updatedBgColor: string | null = existing.backgroundColor;
+    if (backgroundColor !== undefined) {
+      if (backgroundColor === null || String(backgroundColor).trim() === '') {
+        updatedBgColor = null;
+      } else {
+        const trimmedBg = String(backgroundColor).trim();
+        if (!isValidHexColor(trimmedBg)) {
+          res.status(400).json({ error: 'Background color must be a valid hex color code (e.g. #4F46E5)', field: 'background_color' });
+          return;
+        }
+        updatedBgColor = trimmedBg;
+      }
+    }
+
+    let updatedTextColor: string | null = existing.textColor;
+    if (textColor !== undefined) {
+      if (textColor === null || String(textColor).trim() === '') {
+        updatedTextColor = null;
+      } else {
+        const trimmedText = String(textColor).trim();
+        if (!isValidHexColor(trimmedText)) {
+          res.status(400).json({ error: 'Text color must be a valid hex color code (e.g. #FFFFFF)', field: 'text_color' });
+          return;
+        }
+        updatedTextColor = trimmedText;
       }
     }
 
@@ -370,9 +435,11 @@ router.put('/:id', requireAuth, async (req: Request, res: Response, next: NextFu
               ? sanitizeHtml(String(customLabel).trim().slice(0, 100))
               : null
             : existing.customLabel,
+        backgroundColor: updatedBgColor,
+        textColor: updatedTextColor,
         mediaType: mediaType !== undefined ? (mediaType ? String(mediaType).trim() : null) : existing.mediaType,
         mediaUrl: mediaUrl !== undefined ? (mediaUrl ? String(mediaUrl).trim() : null) : existing.mediaUrl,
-        utmParams: Object.keys(updatedUtmParams).length ? updatedUtmParams : null,
+        utmParams: Object.keys(updatedUtmParams).length ? updatedUtmParams : Prisma.DbNull,
         position: position !== undefined ? Number(position) : existing.position,
         scheduledStart:
           scheduledStart !== undefined ? (scheduledStart ? new Date(scheduledStart) : null) : existing.scheduledStart,
@@ -500,6 +567,8 @@ router.post('/:id/duplicate', requireAuth, async (req: Request, res: Response, n
         isFeatured: existing.isFeatured,
         category: existing.category,
         customLabel: existing.customLabel,
+        backgroundColor: existing.backgroundColor,
+        textColor: existing.textColor,
         mediaType: existing.mediaType,
         mediaUrl: existing.mediaUrl,
         utmParams: existing.utmParams as any,

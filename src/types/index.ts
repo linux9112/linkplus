@@ -62,6 +62,10 @@ export interface Link {
   is_featured: boolean;
   category?: string | null;
   custom_label?: string | null;
+  background_color?: string | null;
+  text_color?: string | null;
+  backgroundColor?: string | null;
+  textColor?: string | null;
   media_type?: string | null;
   media_url?: string | null;
   utm_params?: Record<string, string> | null;

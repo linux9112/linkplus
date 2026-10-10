@@ -15,10 +15,23 @@ import {
   Check,
   MousePointerClick,
   Upload,
+  Loader2,
+  Palette,
+  Sparkles,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
+
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
 import { validateImageFile, processImageFileToDataUri } from '../../utils/imageUpload';
+import {
+  getContrastRatio,
+  isValidHexColor,
+  autoContrastColor,
+  LINK_COLOR_PRESETS,
+} from '../../utils/contrast';
+export { LINK_COLOR_PRESETS };
 import type { Link as LinkItem } from '../../types/index';
 import PublicProfileRenderer, { renderLinkIcon } from '../../components/profile/PublicProfileRenderer';
 import Button from '../../components/ui/Button';
@@ -53,6 +66,8 @@ interface LinkFormState {
   thumbnail_url: string;
   category: string;
   custom_label: string;
+  background_color: string;
+  text_color: string;
   is_featured: boolean;
   is_pinned: boolean;
   is_hidden: boolean;
@@ -72,6 +87,8 @@ const initialFormState: LinkFormState = {
   thumbnail_url: '',
   category: '',
   custom_label: '',
+  background_color: '',
+  text_color: '',
   is_featured: false,
   is_pinned: false,
   is_hidden: false,
@@ -87,6 +104,18 @@ export const LinksPage: React.FC = () => {
   const { user, profile } = useAuth();
   const { showToast } = useToast();
 
+  const themeSettings = (profile?.theme_settings as Record<string, any>) || {};
+  const fallbackThemeBg = (themeSettings.button_color as string) || (themeSettings.cardBg as string) || '#202430';
+  const fallbackThemeText = (themeSettings.button_text_color as string) || (themeSettings.cardText as string) || '#FFFFFF';
+  const fallbackShape = (themeSettings.button_shape as string) || 'rounded-xl';
+
+  const getShapeClass = (shape?: string) => {
+    if (shape === 'rounded-full') return 'rounded-full';
+    if (shape === 'sharp') return 'rounded-none';
+    if (shape === 'rounded-2xl') return 'rounded-2xl';
+    return 'rounded-xl';
+  };
+
   const [links, setLinks] = useState<LinkItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -98,6 +127,52 @@ export const LinksPage: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  const effectiveBg = form.background_color && isValidHexColor(form.background_color)
+    ? form.background_color
+    : fallbackThemeBg;
+  const effectiveText = form.text_color && isValidHexColor(form.text_color)
+    ? form.text_color
+    : fallbackThemeText;
+  const contrastInfo = getContrastRatio(effectiveText, effectiveBg);
+
+  const activePreset = (() => {
+    if (!form.background_color && !form.text_color) return 'default';
+    const match = LINK_COLOR_PRESETS.find(
+      (p) =>
+        p.id !== 'default' &&
+        p.id !== 'custom' &&
+        p.bg.toLowerCase() === form.background_color.toLowerCase() &&
+        p.text.toLowerCase() === form.text_color.toLowerCase()
+    );
+    return match ? match.id : 'custom';
+  })();
+
+  const handleApplyPreset = (presetId: string) => {
+    if (presetId === 'default') {
+      setForm((prev) => ({ ...prev, background_color: '', text_color: '' }));
+      return;
+    }
+    if (presetId === 'custom') {
+      if (!form.background_color && !form.text_color) {
+        setForm((prev) => ({ ...prev, background_color: '#4F46E5', text_color: '#FFFFFF' }));
+      }
+      return;
+    }
+    const found = LINK_COLOR_PRESETS.find((p) => p.id === presetId);
+    if (found) {
+      setForm((prev) => ({ ...prev, background_color: found.bg, text_color: found.text }));
+    }
+  };
+
+  const handleAutoContrast = () => {
+    const chosenBg = form.background_color.trim() || fallbackThemeBg;
+    const bestText = autoContrastColor(chosenBg);
+    setForm((prev) => ({ ...prev, text_color: bestText }));
+    showToast(`Auto contrast text color set to ${bestText}`, 'info');
+  };
+
 
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -138,6 +213,8 @@ export const LinksPage: React.FC = () => {
       thumbnail_url: link.thumbnail_url || (link as any).thumbnailUrl || '',
       category: link.category || '',
       custom_label: link.custom_label || (link as any).customLabel || '',
+      background_color: link.background_color || (link as any).backgroundColor || '',
+      text_color: link.text_color || (link as any).textColor || '',
       is_featured: Boolean(link.is_featured ?? (link as any).isFeatured),
       is_pinned: Boolean(link.is_pinned ?? (link as any).isPinned),
       is_hidden: Boolean(link.is_hidden ?? (link as any).isHidden),
@@ -175,6 +252,15 @@ export const LinksPage: React.FC = () => {
       return;
     }
 
+    if (form.background_color.trim() && !isValidHexColor(form.background_color.trim())) {
+      setFormError('Background color must be a valid hex color code (e.g. #4F46E5)');
+      return;
+    }
+    if (form.text_color.trim() && !isValidHexColor(form.text_color.trim())) {
+      setFormError('Text color must be a valid hex color code (e.g. #FFFFFF)');
+      return;
+    }
+
     const normalizedUrl = /^https?:\/\//i.test(form.destination_url.trim())
       ? form.destination_url.trim()
       : `https://${form.destination_url.trim()}`;
@@ -190,6 +276,8 @@ export const LinksPage: React.FC = () => {
       description: form.description.trim() || null,
       icon: form.icon || 'globe',
       thumbnail_url: form.thumbnail_url.trim() || null,
+      background_color: form.background_color.trim() || null,
+      text_color: form.text_color.trim() || null,
       category: form.category.trim() || null,
       custom_label: form.custom_label.trim() || null,
       is_featured: form.is_featured,
@@ -651,16 +739,32 @@ export const LinksPage: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <label className="cursor-pointer px-3 py-1.5 rounded-lg border border-[#E5E7EB] dark:border-[#343B4B] bg-white dark:bg-[#202430] text-xs font-semibold text-[#171923] dark:text-[#F9FAFB] hover:border-[#4F46E5] inline-flex items-center gap-1.5 shadow-sm">
-                <Upload className="w-3.5 h-3.5 text-indigo-500" />
-                <span>{form.thumbnail_url ? 'Replace' : 'Upload Logo'}</span>
+              <label
+                className={`cursor-pointer px-3 py-1.5 rounded-lg border border-[#E5E7EB] dark:border-[#343B4B] bg-white dark:bg-[#202430] text-xs font-semibold text-[#171923] dark:text-[#F9FAFB] hover:border-[#4F46E5] inline-flex items-center gap-1.5 shadow-sm transition-opacity ${
+                  uploadingLogo ? 'opacity-60 pointer-events-none' : ''
+                }`}
+              >
+                {uploadingLogo ? (
+                  <Loader2 className="w-3.5 h-3.5 text-indigo-500 animate-spin" />
+                ) : (
+                  <Upload className="w-3.5 h-3.5 text-indigo-500" />
+                )}
+                <span>
+                  {uploadingLogo
+                    ? 'Uploading...'
+                    : form.thumbnail_url
+                    ? 'Replace'
+                    : 'Upload Logo'}
+                </span>
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/webp,image/gif"
                   className="hidden"
+                  disabled={uploadingLogo}
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
+                    setUploadingLogo(true);
                     try {
                       validateImageFile(file, 5);
                       const dataUri = await processImageFileToDataUri(file, 400, 'contain');
@@ -670,22 +774,322 @@ export const LinksPage: React.FC = () => {
                         link_id: editingLink?.id,
                       });
                       setForm((prev) => ({ ...prev, thumbnail_url: res.url }));
-                      showToast('Logo uploaded!', 'success');
+                      showToast('Logo uploaded and saved!', 'success');
                     } catch (err: any) {
                       showToast(err.message || 'Failed to upload logo', 'error');
+                    } finally {
+                      setUploadingLogo(false);
+                      e.target.value = '';
                     }
                   }}
                 />
               </label>
-              {form.thumbnail_url && (
+              {form.thumbnail_url && !uploadingLogo && (
                 <button
                   type="button"
-                  onClick={() => setForm((prev) => ({ ...prev, thumbnail_url: '' }))}
+                  onClick={async () => {
+                    if (editingLink?.id) {
+                      try {
+                        await api.delete('/api/upload/image', { link_id: editingLink.id });
+                      } catch {
+                        // ignore
+                      }
+                    }
+                    setForm((prev) => ({ ...prev, thumbnail_url: '' }));
+                    showToast('Logo cleared', 'info');
+                  }}
                   className="px-2 py-1.5 text-xs text-red-600 dark:text-red-400 hover:underline"
                 >
                   Clear
                 </button>
               )}
+            </div>
+
+          </div>
+
+          {/* Link Appearance */}
+          <div className="p-4 bg-[#F7F8FA] dark:bg-[#171923] rounded-xl border border-[#E5E7EB] dark:border-[#343B4B] space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Palette className="w-4 h-4 text-indigo-500" />
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#171923] dark:text-[#F9FAFB]">
+                  Link Appearance
+                </h3>
+              </div>
+              {(form.background_color || form.text_color) && (
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, background_color: '', text_color: '' }))}
+                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-medium"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>Reset to Theme Default</span>
+                </button>
+              )}
+            </div>
+
+            {/* Live Link Button Preview */}
+            <div className="p-3.5 rounded-xl bg-white dark:bg-[#202430] border border-[#E5E7EB] dark:border-[#343B4B] shadow-inner space-y-2.5">
+              <div className="flex items-center justify-between text-[11px] text-[#626B7A] dark:text-[#A7AFBD]">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                  Live Link Preview
+                </span>
+                <div className="flex items-center gap-2">
+                  {form.background_color || form.text_color ? (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                      Per-Link Custom Colors
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                      Profile Theme Default
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Realistic Button Simulation */}
+              <div
+                style={{
+                  backgroundColor: effectiveBg,
+                  color: effectiveText,
+                  borderColor: 'rgba(255, 255, 255, 0.18)',
+                }}
+                className={`w-full py-3 px-4 border shadow-sm flex items-center justify-between transition-all duration-200 ${getShapeClass(
+                  fallbackShape
+                )}`}
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  {form.thumbnail_url ? (
+                    <div className="w-8 h-8 rounded-lg bg-white/10 dark:bg-black/20 flex items-center justify-center overflow-hidden shrink-0 border border-white/20 p-0.5">
+                      <img
+                        src={form.thumbnail_url}
+                        alt="Logo"
+                        className="w-full h-full object-contain rounded"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 shrink-0 flex items-center justify-center">
+                      {renderLinkIcon(form.icon, form.title, form.destination_url)}
+                    </div>
+                  )}
+
+                  <div className="min-w-0 flex-1 text-left">
+                    <span
+                      className="font-semibold text-sm truncate block"
+                      style={{ color: effectiveText }}
+                    >
+                      {form.title.trim() || 'Link Title Preview'}
+                    </span>
+                    {form.description.trim() && (
+                      <p
+                        className="text-xs opacity-75 truncate mt-0.5"
+                        style={{ color: effectiveText }}
+                      >
+                        {form.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <ExternalLink className="w-4 h-4 opacity-70 shrink-0 ml-2" style={{ color: effectiveText }} />
+              </div>
+
+              {/* Contrast Indicator / Warning */}
+              <div className="pt-0.5">
+                {contrastInfo.ratio >= 4.5 ? (
+                  <div className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                    <Check className="w-3.5 h-3.5" />
+                    <span>
+                      High Contrast: {contrastInfo.ratio}:1 (WCAG {contrastInfo.score} passed)
+                    </span>
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                      <span className="truncate">
+                        Low contrast ({contrastInfo.ratio}:1) — text may be difficult to read.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAutoContrast}
+                      className="px-2.5 py-1 rounded bg-amber-200/90 dark:bg-amber-800 text-[11px] font-bold text-amber-900 dark:text-amber-100 hover:bg-amber-300 transition-colors shrink-0"
+                    >
+                      Auto Contrast
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Presets */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#626B7A] dark:text-[#A7AFBD] mb-2">
+                Quick Presets
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {LINK_COLOR_PRESETS.map((preset) => {
+                  const isActive = activePreset === preset.id;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => handleApplyPreset(preset.id)}
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-medium flex items-center gap-1.5 transition-all ${
+                        isActive
+                          ? 'bg-[#EEF2FF] border-[#4F46E5] text-[#4F46E5] dark:bg-[#1E1B4B] dark:border-[#6366F1] dark:text-[#818CF8] ring-1 ring-[#4F46E5]'
+                          : 'bg-white dark:bg-[#202430] border-[#E5E7EB] dark:border-[#343B4B] text-[#424B5A] dark:text-[#A7AFBD] hover:bg-slate-50 dark:hover:bg-[#272D3A]'
+                      }`}
+                    >
+                      {preset.bg ? (
+                        <span
+                          className="w-3.5 h-3.5 rounded-full border border-black/20 shrink-0 shadow-xs"
+                          style={{ backgroundColor: preset.bg }}
+                        />
+                      ) : (
+                        <span className="w-3.5 h-3.5 rounded-full border border-dashed border-slate-400 shrink-0" />
+                      )}
+                      <span>{preset.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Color Pickers: Background & Text */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Background Color */}
+              <div className="p-3 bg-white dark:bg-[#202430] rounded-xl border border-[#E5E7EB] dark:border-[#343B4B] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[#171923] dark:text-[#F9FAFB] flex items-center gap-1.5">
+                    <span>Background Color</span>
+                    {form.background_color && (
+                      <span
+                        className="w-2.5 h-2.5 rounded-full inline-block border border-black/20"
+                        style={{ backgroundColor: form.background_color }}
+                      />
+                    )}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, background_color: '' }))}
+                    className={`text-[11px] transition-colors ${
+                      !form.background_color
+                        ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
+                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline'
+                    }`}
+                  >
+                    {!form.background_color ? '✓ Theme Default' : 'Use Theme Default'}
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-[#E5E7EB] dark:border-[#343B4B] shrink-0 shadow-xs cursor-pointer">
+                    <input
+                      type="color"
+                      value={
+                        form.background_color && isValidHexColor(form.background_color)
+                          ? form.background_color.slice(0, 7)
+                          : fallbackThemeBg.startsWith('#')
+                          ? fallbackThemeBg.slice(0, 7)
+                          : '#202430'
+                      }
+                      onChange={(e) => setForm({ ...form, background_color: e.target.value })}
+                      className="absolute -top-3 -left-3 w-16 h-16 cursor-pointer border-0 p-0"
+                      title="Select background color"
+                    />
+                    <div
+                      className="w-full h-full pointer-events-none"
+                      style={{ backgroundColor: form.background_color || fallbackThemeBg }}
+                    />
+                  </div>
+
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={form.background_color}
+                      onChange={(e) => setForm({ ...form, background_color: e.target.value })}
+                      placeholder={fallbackThemeBg.startsWith('#') ? fallbackThemeBg : '#4F46E5'}
+                      maxLength={9}
+                      className="w-full px-3 py-2 rounded-lg border border-[#E5E7EB] dark:border-[#343B4B] bg-white dark:bg-[#171923] text-xs font-mono text-[#171923] dark:text-[#F9FAFB] focus:outline-none focus:ring-1 focus:ring-[#4F46E5]"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                  Hex color or clear to inherit the profile theme color.
+                </p>
+              </div>
+
+              {/* Text Color */}
+              <div className="p-3 bg-white dark:bg-[#202430] rounded-xl border border-[#E5E7EB] dark:border-[#343B4B] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[#171923] dark:text-[#F9FAFB] flex items-center gap-1.5">
+                    <span>Text Color</span>
+                    {form.text_color && (
+                      <span
+                        className="w-2.5 h-2.5 rounded-full inline-block border border-black/20"
+                        style={{ backgroundColor: form.text_color }}
+                      />
+                    )}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAutoContrast}
+                    className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                    title="Automatically pick readable high-contrast text color"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    <span>Auto Contrast</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="relative w-10 h-10 rounded-lg overflow-hidden border border-[#E5E7EB] dark:border-[#343B4B] shrink-0 shadow-xs cursor-pointer">
+                    <input
+                      type="color"
+                      value={
+                        form.text_color && isValidHexColor(form.text_color)
+                          ? form.text_color.slice(0, 7)
+                          : fallbackThemeText.startsWith('#')
+                          ? fallbackThemeText.slice(0, 7)
+                          : '#FFFFFF'
+                      }
+                      onChange={(e) => setForm({ ...form, text_color: e.target.value })}
+                      className="absolute -top-3 -left-3 w-16 h-16 cursor-pointer border-0 p-0"
+                      title="Select text color"
+                    />
+                    <div
+                      className="w-full h-full pointer-events-none"
+                      style={{ backgroundColor: form.text_color || fallbackThemeText }}
+                    />
+                  </div>
+
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={form.text_color}
+                      onChange={(e) => setForm({ ...form, text_color: e.target.value })}
+                      placeholder={fallbackThemeText.startsWith('#') ? fallbackThemeText : '#FFFFFF'}
+                      maxLength={9}
+                      className="w-full px-3 py-2 rounded-lg border border-[#E5E7EB] dark:border-[#343B4B] bg-white dark:bg-[#171923] text-xs font-mono text-[#171923] dark:text-[#F9FAFB] focus:outline-none focus:ring-1 focus:ring-[#4F46E5]"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
+                  <span>Hex color code</span>
+                  {form.text_color && (
+                    <button
+                      type="button"
+                      onClick={() => setForm((prev) => ({ ...prev, text_color: '' }))}
+                      className="hover:underline text-slate-400"
+                    >
+                      Reset to default
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 

@@ -8,6 +8,8 @@ import { optionalAuth } from '../middleware/auth.middleware.js';
 import { formatProfile } from './profile.routes.js';
 import { formatLink } from './link.routes.js';
 import { parseDataImageUri, readFromDiskIfPossible } from '../utils/image-storage.js';
+import { githubStorageService } from '../services/github-storage.service.js';
+
 
 const router = Router();
 
@@ -46,8 +48,36 @@ export function computeDailyVisitorHash(ip: string, userAgent: string): string {
 }
 
 /**
+ * GET /api/public/image-proxy
+ * Public anonymous proxy endpoint for images stored in GitHub repository.
+ * Ensures images are delivered even if the repository is private or CDN is throttled.
+ */
+router.get('/image-proxy', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const rawPath = String(req.query.path || '').trim();
+    if (!rawPath) {
+      res.status(400).json({ error: 'Image path parameter is required.' });
+      return;
+    }
+
+    const fetched = await githubStorageService.fetchImage(rawPath);
+    if (!fetched) {
+      res.status(404).json({ error: 'Image not found in storage repository.' });
+      return;
+    }
+
+    res.setHeader('Content-Type', fetched.contentType);
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+    res.status(200).send(fetched.buffer);
+  } catch {
+    res.status(502).json({ error: 'Failed to proxy requested image.' });
+  }
+});
+
+/**
  * GET /api/public/avatar/:userId
- * Serve the user's uploaded profile photo directly from MySQL (or disk fallback).
+ * Serve the user's uploaded profile photo directly from MySQL, GitHub, or disk fallback.
  */
 router.get('/avatar/:userId', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -63,6 +93,12 @@ router.get('/avatar/:userId', async (req: Request, res: Response, next: NextFunc
 
     if (!profile) {
       res.status(404).json({ error: 'Avatar not found' });
+      return;
+    }
+
+    // If avatarUrl is an external URL (e.g. GitHub raw URL), redirect to it
+    if (profile.avatarUrl && (profile.avatarUrl.startsWith('http://') || profile.avatarUrl.startsWith('https://'))) {
+      res.redirect(302, profile.avatarUrl);
       return;
     }
 
@@ -105,6 +141,7 @@ router.get('/avatar/:userId', async (req: Request, res: Response, next: NextFunc
   }
 });
 
+
 /**
  * GET /api/public/cover/:userId
  * Serve the user's uploaded cover photo directly from MySQL (or disk fallback).
@@ -131,11 +168,18 @@ router.get('/cover/:userId', async (req: Request, res: Response, next: NextFunct
         ? (profile.themeSettings as Record<string, any>)
         : {};
 
+    // External URL redirect (e.g. GitHub raw URL)
+    if (themeSettings?.cover_url && (themeSettings.cover_url.startsWith('http://') || themeSettings.cover_url.startsWith('https://'))) {
+      res.redirect(302, themeSettings.cover_url);
+      return;
+    }
+
     const dataUri =
       themeSettings?.cover_data_url ||
       (typeof themeSettings?.cover_url === 'string' && themeSettings.cover_url.startsWith('data:image/')
         ? themeSettings.cover_url
         : null);
+
 
     if (dataUri && typeof dataUri === 'string') {
       const parsed = parseDataImageUri(dataUri);
@@ -208,8 +252,14 @@ router.get('/link-logo/:linkId', async (req: Request, res: Response, next: NextF
     });
 
     if (link) {
+      if (link.thumbnailUrl && (link.thumbnailUrl.startsWith('http://') || link.thumbnailUrl.startsWith('https://'))) {
+        res.redirect(302, link.thumbnailUrl);
+        return;
+      }
+
       const utmParams = (link.utmParams as Record<string, any>) || {};
       const dataUri =
+
         utmParams?.logo_data_url ||
         (link.thumbnailUrl && link.thumbnailUrl.startsWith('data:image/') ? link.thumbnailUrl : null);
 

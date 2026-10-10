@@ -71,6 +71,8 @@ model Link {
   isFeatured     Boolean   @default(false) @map("is_featured")
   category       String?   @db.VarChar(100)
   customLabel    String?   @map("custom_label") @db.VarChar(100)
+  backgroundColor String?  @map("background_color") @db.VarChar(50)
+  textColor       String?  @map("text_color") @db.VarChar(50)
   mediaType      String?   @map("media_type") @db.VarChar(50)
   mediaUrl       String?   @map("media_url") @db.VarChar(2048)
   utmParams      Json?     @map("utm_params")

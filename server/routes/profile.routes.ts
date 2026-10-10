@@ -5,6 +5,8 @@ import { requireAuth } from '../middleware/auth.middleware.js';
 import { isReservedUsername, validateUsername } from '../utils/reserved-usernames.js';
 import { sanitizeUser } from '../services/auth.service.js';
 import { parseDataImageUri, MAX_UPLOAD_SIZE, validateImageMagicBytes } from '../utils/image-storage.js';
+import { githubStorageService, GitHubStorageError } from '../services/github-storage.service.js';
+
 
 const router = Router();
 
@@ -229,9 +231,48 @@ router.post('/avatar', requireAuth, async (req: Request, res: Response, next: Ne
           };
 
     existingTheme.avatar_data_url = imageData;
-    const avatarUrl = `/api/public/avatar/${req.user!.id}?v=${Date.now()}`;
+    let avatarUrl = `/api/public/avatar/${req.user!.id}?v=${Date.now()}`;
+
+    if (githubStorageService.isConfigured()) {
+      try {
+        const githubResult = await githubStorageService.uploadImage({
+          category: 'avatars',
+          userId: req.user!.id,
+          buffer: parsed.buffer,
+          ext: parsed.ext,
+          mimeType: parsed.mimeType,
+          commitMessage: `Upload avatar for @${req.user!.username} [skip ci]`,
+        });
+
+        // Clean up previous GitHub avatar if present
+        const oldAvatar = existingTheme.github_avatar;
+        if (oldAvatar?.path && oldAvatar.path !== githubResult.path) {
+          githubStorageService
+            .deleteImage({ path: oldAvatar.path, sha: oldAvatar.sha, userId: req.user!.id })
+            .catch(() => {});
+        }
+
+        avatarUrl = githubResult.url;
+        existingTheme.github_avatar = {
+          path: githubResult.path,
+          sha: githubResult.sha,
+          url: githubResult.url,
+          raw_url: githubResult.rawUrl,
+          cdn_url: githubResult.cdnUrl,
+          proxy_url: githubResult.proxyUrl,
+          uploaded_at: new Date().toISOString(),
+        };
+      } catch (err: any) {
+        if (err instanceof GitHubStorageError) {
+          res.status(err.statusCode).json({ error: err.message, code: err.code });
+          return;
+        }
+        throw err;
+      }
+    }
 
     const profile = existing
+
       ? await prisma.profile.update({
           where: { userId: req.user!.id },
           data: {

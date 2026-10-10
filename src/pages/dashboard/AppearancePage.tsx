@@ -472,16 +472,13 @@ export const AppearancePage: React.FC = () => {
           cover_data_url: croppedDataUri,
         });
         showToast('Cover banner updated and saved!', 'success');
-      } catch {
-        updateSettings({
-          cover_url: croppedDataUri,
-          cover_data_url: croppedDataUri,
-        });
-        showToast('Cover photo updated in studio preview!', 'info');
+        setCropModalOpen(false);
+      } catch (err: any) {
+        showToast(err.message || 'Failed to upload cover banner', 'error');
       }
     }
-    setCropModalOpen(false);
   };
+
 
   // Real-time Preview Profile Object
   const previewProfile: Profile = {

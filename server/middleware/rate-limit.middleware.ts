@@ -63,3 +63,19 @@ export const analyticsRateLimiter: RequestHandler = rateLimit({
   },
   skip: () => isTest,
 });
+
+/**
+ * Image upload endpoint rate limiter.
+ * Enforces 30 upload requests per 15 minutes per IP to protect GitHub API limits.
+ */
+export const uploadRateLimiter: RequestHandler = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: isTest ? 10000 : 30,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: {
+    error: 'Upload rate limit exceeded. Please wait a few minutes before uploading more images.',
+  },
+  skip: () => isTest,
+});
+
