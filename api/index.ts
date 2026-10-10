@@ -8,7 +8,9 @@ import app from '../server/app.js';
  */
 export const config = {
   api: {
-    bodyParser: false,
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
     externalResolver: true,
   },
 };

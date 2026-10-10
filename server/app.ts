@@ -39,6 +39,22 @@ export function createApp(): Application {
   // Performance & Body Parsing (10MB limit for rich media, logo and avatar uploads)
   app.use(compression());
   app.use(cookieParser());
+
+  // Vercel Serverless Body Parser Bridge:
+  // If @vercel/node has already consumed the stream and populated req.body,
+  // set req._body = true so express.json() / body-parser skips re-reading the ended stream and does not deadlock.
+  app.use((req: any, _res, next) => {
+    if (req.body !== undefined && req.body !== null) {
+      if (typeof req.body === 'string' && req.body.length > 0) {
+        try {
+          req.body = JSON.parse(req.body);
+        } catch {}
+      }
+      req._body = true;
+    }
+    next();
+  });
+
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
