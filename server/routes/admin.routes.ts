@@ -425,14 +425,14 @@ router.get('/badges/overview', async (_req: Request, res: Response, next: NextFu
       }),
       prisma.userBadge.count({
         where: {
-          badgeTypeId: 'verified',
+          badgeType: { name: { equals: 'Verified' } },
           status: 'active',
           OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
         },
       }),
       prisma.userBadge.count({
         where: {
-          badgeTypeId: 'trusted',
+          badgeType: { name: { equals: 'Trusted' } },
           status: 'active',
           OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
         },
@@ -458,18 +458,18 @@ router.get('/badges/overview', async (_req: Request, res: Response, next: NextFu
     const recentlyAwarded = recentlyAwardedRaw.map((b) => ({
       id: b.id,
       user_id: b.userId,
-      username: b.user.username,
-      displayName: b.user.profile?.displayName || b.user.username,
-      avatarUrl: b.user.profile?.avatarUrl,
+      username: b.user?.username || 'user',
+      displayName: b.user?.profile?.displayName || b.user?.username || 'User',
+      avatarUrl: b.user?.profile?.avatarUrl || null,
       badge: {
-        id: b.badgeType.id,
-        name: b.badgeType.name,
-        public_label: b.badgeType.publicLabel,
-        icon: b.badgeType.icon,
-        color: b.badgeType.color,
+        id: b.badgeType?.id,
+        name: b.badgeType?.name,
+        public_label: b.badgeType?.publicLabel,
+        icon: b.badgeType?.icon,
+        color: b.badgeType?.color,
       },
       awarded_at: b.awardedAt,
-      awarded_by_username: b.awardedByUser.username,
+      awarded_by_username: b.awardedByUser?.username || 'Super Admin',
       status: b.status,
       expires_at: b.expiresAt,
       internal_note: b.internalNote,
@@ -477,11 +477,17 @@ router.get('/badges/overview', async (_req: Request, res: Response, next: NextFu
 
     res.status(200).json({
       stats: {
+        total_badges: totalBadgesAwarded,
+        total_awarded: totalBadgesAwarded,
         totalBadgesAwarded,
+        total_verified: totalVerifiedUsers,
         totalVerifiedUsers,
+        total_trusted: totalTrustedUsers,
         totalTrustedUsers,
+        active_assignments: totalBadgesAwarded,
       },
       recentlyAwarded,
+      recent_awards: recentlyAwarded,
     });
   } catch (error) {
     next(error);
@@ -687,19 +693,74 @@ router.get('/badges/users', async (req: Request, res: Response, next: NextFuncti
       ];
     }
 
-    if (badgeFilter) {
-      where.assignedBadges = {
-        some: {
-          badgeTypeId: badgeFilter,
-          ...(statusFilter && statusFilter !== 'all' ? { status: statusFilter } : {}),
-        },
-      };
+    const now = new Date();
+
+    if (badgeFilter && badgeFilter !== 'all') {
+      if (statusFilter === 'active') {
+        where.assignedBadges = {
+          some: {
+            badgeTypeId: badgeFilter,
+            status: 'active',
+            OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+          },
+        };
+      } else if (statusFilter === 'expired') {
+        where.assignedBadges = {
+          some: {
+            badgeTypeId: badgeFilter,
+            OR: [
+              { status: 'expired' },
+              { status: 'active', expiresAt: { lte: now } },
+            ],
+          },
+        };
+      } else if (statusFilter === 'revoked') {
+        where.assignedBadges = {
+          some: {
+            badgeTypeId: badgeFilter,
+            status: 'revoked',
+          },
+        };
+      } else {
+        // all or has_badge
+        where.assignedBadges = {
+          some: {
+            badgeTypeId: badgeFilter,
+          },
+        };
+      }
     } else if (statusFilter && statusFilter !== 'all') {
-      where.assignedBadges = {
-        some: {
-          status: statusFilter,
-        },
-      };
+      if (statusFilter === 'has_badge') {
+        where.assignedBadges = {
+          some: {},
+        };
+      } else if (statusFilter === 'no_badge') {
+        where.assignedBadges = {
+          none: {},
+        };
+      } else if (statusFilter === 'active') {
+        where.assignedBadges = {
+          some: {
+            status: 'active',
+            OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+          },
+        };
+      } else if (statusFilter === 'expired') {
+        where.assignedBadges = {
+          some: {
+            OR: [
+              { status: 'expired' },
+              { status: 'active', expiresAt: { lte: now } },
+            ],
+          },
+        };
+      } else if (statusFilter === 'revoked') {
+        where.assignedBadges = {
+          some: {
+            status: 'revoked',
+          },
+        };
+      }
     }
 
     const [users, total] = await Promise.all([
@@ -725,7 +786,7 @@ router.get('/badges/users', async (req: Request, res: Response, next: NextFuncti
       prisma.user.count({ where }),
     ]);
 
-    const now = new Date();
+    const totalPages = Math.ceil(total / limit) || 1;
 
     res.status(200).json({
       users: users.map((u) => ({
@@ -735,31 +796,59 @@ router.get('/badges/users', async (req: Request, res: Response, next: NextFuncti
         role: u.role,
         status: u.status,
         displayName: u.profile?.displayName || u.username,
-        avatarUrl: u.profile?.avatarUrl,
+        avatarUrl: u.profile?.avatarUrl || null,
+        profile: {
+          displayName: u.profile?.displayName || u.username,
+          avatarUrl: u.profile?.avatarUrl || null,
+          bio: u.profile?.bio || null,
+        },
         badges: u.assignedBadges.map((b) => {
           const isExpired = b.expiresAt ? b.expiresAt <= now : false;
           const effectiveStatus = b.status === 'active' && isExpired ? 'expired' : b.status;
+          const badgeTypeData = b.badgeType
+            ? {
+                id: b.badgeType.id,
+                name: b.badgeType.name,
+                public_label: b.badgeType.publicLabel,
+                description: b.badgeType.description,
+                icon: b.badgeType.icon,
+                color: b.badgeType.color,
+                is_active: b.badgeType.isActive,
+              }
+            : {
+                id: b.badgeTypeId,
+                name: 'Badge',
+                public_label: 'Badge',
+                description: '',
+                icon: 'Award',
+                color: '#4F46E5',
+                is_active: true,
+              };
+
           return {
             id: b.id,
+            user_id: b.userId,
             badge_type_id: b.badgeTypeId,
-            name: b.badgeType.name,
-            public_label: b.badgeType.publicLabel,
-            description: b.badgeType.description,
-            icon: b.badgeType.icon,
-            color: b.badgeType.color,
+            name: badgeTypeData.name,
+            public_label: badgeTypeData.public_label,
+            description: badgeTypeData.description,
+            icon: badgeTypeData.icon,
+            color: badgeTypeData.color,
+            badge_type: badgeTypeData,
             status: effectiveStatus,
             awarded_at: b.awardedAt,
             expires_at: b.expiresAt,
             internal_note: b.internalNote,
             revocation_reason: b.revocationReason,
-            awarded_by_username: b.awardedByUser.username,
-            revoked_by_username: b.revokedByUser?.username,
+            awarded_by_username: b.awardedByUser?.username || 'Super Admin',
+            revoked_by_username: b.revokedByUser?.username || null,
           };
         }),
       })),
       total,
       page,
       limit,
+      totalPages,
     });
   } catch (error) {
     next(error);
@@ -918,8 +1007,8 @@ router.post('/badges/revoke', async (req: Request, res: Response, next: NextFunc
         targetType: 'user_badge',
         targetId: badge.id,
         details: {
-          username: badge.user.username,
-          badgeName: badge.badgeType.name,
+          username: badge.user?.username || 'user',
+          badgeName: badge.badgeType?.name || 'Badge',
           reason: revocationReason,
         },
       },
@@ -927,7 +1016,7 @@ router.post('/badges/revoke', async (req: Request, res: Response, next: NextFunc
 
     res.status(200).json({
       success: true,
-      message: `Revoked '${badge.badgeType.publicLabel}' badge from @${badge.user.username}.`,
+      message: `Revoked '${badge.badgeType?.publicLabel || 'Badge'}' badge from @${badge.user?.username || 'user'}.`,
       badge: updated,
     });
   } catch (error) {
@@ -973,7 +1062,7 @@ router.post('/badges/restore', async (req: Request, res: Response, next: NextFun
 
     if (existingActive) {
       res.status(409).json({
-        error: `@${badge.user.username} already has another active assignment of '${badge.badgeType.publicLabel}'.`,
+        error: `@${badge.user?.username || 'user'} already has another active assignment of '${badge.badgeType?.publicLabel || 'Badge'}'.`,
       });
       return;
     }
@@ -998,15 +1087,15 @@ router.post('/badges/restore', async (req: Request, res: Response, next: NextFun
         targetType: 'user_badge',
         targetId: badge.id,
         details: {
-          username: badge.user.username,
-          badgeName: badge.badgeType.name,
+          username: badge.user?.username || 'user',
+          badgeName: badge.badgeType?.name || 'Badge',
         },
       },
     });
 
     res.status(200).json({
       success: true,
-      message: `Restored '${badge.badgeType.publicLabel}' badge for @${badge.user.username}.`,
+      message: `Restored '${badge.badgeType?.publicLabel || 'Badge'}' badge for @${badge.user?.username || 'user'}.`,
       badge: updated,
     });
   } catch (error) {
@@ -1048,8 +1137,8 @@ router.put('/badges/:id', async (req: Request, res: Response, next: NextFunction
         targetType: 'user_badge',
         targetId: id,
         details: {
-          username: existing.user.username,
-          badgeName: existing.badgeType.name,
+          username: existing.user?.username || 'user',
+          badgeName: existing.badgeType?.name || 'Badge',
           expiresAt: updated.expiresAt,
           note: updated.internalNote,
         },
@@ -1098,18 +1187,20 @@ router.get('/badges/history', async (req: Request, res: Response, next: NextFunc
       prisma.userBadge.count(),
     ]);
 
+    const totalPages = Math.ceil(total / limit) || 1;
+
     res.status(200).json({
       history: history.map((h) => ({
         id: h.id,
         userId: h.userId,
-        username: h.user.username,
-        displayName: h.user.profile?.displayName || h.user.username,
+        username: h.user?.username || 'user',
+        displayName: h.user?.profile?.displayName || h.user?.username || 'user',
         badge: {
-          id: h.badgeType.id,
-          name: h.badgeType.name,
-          public_label: h.badgeType.publicLabel,
-          icon: h.badgeType.icon,
-          color: h.badgeType.color,
+          id: h.badgeType?.id,
+          name: h.badgeType?.name || 'Badge',
+          public_label: h.badgeType?.publicLabel || 'Badge',
+          icon: h.badgeType?.icon || 'Award',
+          color: h.badgeType?.color || '#2563EB',
         },
         status: h.status,
         awarded_at: h.awardedAt,
@@ -1117,12 +1208,13 @@ router.get('/badges/history', async (req: Request, res: Response, next: NextFunc
         internal_note: h.internalNote,
         revoked_at: h.revokedAt,
         revocation_reason: h.revocationReason,
-        awarded_by_username: h.awardedByUser.username,
-        revoked_by_username: h.revokedByUser?.username,
+        awarded_by_username: h.awardedByUser?.username || 'Super Admin',
+        revoked_by_username: h.revokedByUser?.username || null,
       })),
       total,
       page,
       limit,
+      totalPages,
     });
   } catch (error) {
     next(error);

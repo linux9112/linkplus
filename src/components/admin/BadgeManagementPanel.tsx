@@ -161,9 +161,21 @@ export const BadgeManagementPanel: React.FC = () => {
 
   const fetchOverview = useCallback(async () => {
     try {
-      const res = await api.get<{ stats: any; recent_awards: any[] }>('/api/admin/badges/overview');
-      if (res.stats) setStats(res.stats);
-      if (res.recent_awards) setRecentAwards(res.recent_awards);
+      const res = await api.get<{ stats: any; recent_awards?: any[]; recentlyAwarded?: any[] }>('/api/admin/badges/overview');
+      if (res.stats) {
+        setStats({
+          total_badges: res.stats.total_badges ?? res.stats.totalBadgesAwarded ?? 0,
+          total_awarded: res.stats.total_awarded ?? res.stats.totalBadgesAwarded ?? 0,
+          total_verified: res.stats.total_verified ?? res.stats.totalVerifiedUsers ?? 0,
+          total_trusted: res.stats.total_trusted ?? res.stats.totalTrustedUsers ?? 0,
+          active_assignments: res.stats.active_assignments ?? res.stats.totalBadgesAwarded ?? 0,
+          revoked_assignments: res.stats.revoked_assignments ?? 0,
+          expired_assignments: res.stats.expired_assignments ?? 0,
+        });
+      }
+      if (res.recent_awards || res.recentlyAwarded) {
+        setRecentAwards(res.recent_awards || res.recentlyAwarded || []);
+      }
     } catch (err: any) {
       showToast(err.message || 'Failed to fetch badge overview', 'error');
     }

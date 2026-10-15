@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   ShieldAlert,
   Users,
@@ -24,7 +25,8 @@ import BadgeManagementPanel from '../../components/admin/BadgeManagementPanel';
 
 export const AdminPage: React.FC = () => {
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'users' | 'badges' | 'reports' | 'links' | 'audit' | 'settings'>('badges');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState<'users' | 'badges' | 'reports' | 'links' | 'audit' | 'settings'>('users');
   const [loading, setLoading] = useState(true);
 
   const [stats, setStats] = useState({
@@ -78,12 +80,14 @@ export const AdminPage: React.FC = () => {
   }, [userSearch]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
     if (tabParam && ['users', 'badges', 'reports', 'links', 'audit', 'settings'].includes(tabParam)) {
       setActiveTab(tabParam as any);
+    } else {
+      setActiveTab('users');
     }
-  }, []);
+  }, [location.search]);
 
   const handleSuspendUser = async (userId: string, username: string) => {
     try {
@@ -197,8 +201,8 @@ export const AdminPage: React.FC = () => {
       {/* Admin Navigation Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-[#E5E7EB] dark:border-[#343B4B] pb-3">
         {[
-          { id: 'badges', label: 'Badge Management', icon: Award },
           { id: 'users', label: 'Users & Accounts', icon: Users },
+          { id: 'badges', label: 'Badge Management', icon: Award },
           { id: 'reports', label: `Moderation Reports (${stats.pendingReports})`, icon: Flag },
           { id: 'links', label: 'Link Moderation', icon: Link2 },
           { id: 'audit', label: 'Audit Log', icon: FileText },
@@ -208,7 +212,16 @@ export const AdminPage: React.FC = () => {
           return (
             <button
               key={t.id}
-              onClick={() => setActiveTab(t.id as any)}
+              onClick={() => {
+                setActiveTab(t.id as any);
+                const url = new URL(window.location.href);
+                if (t.id === 'users') {
+                  url.searchParams.delete('tab');
+                } else {
+                  url.searchParams.set('tab', t.id);
+                }
+                window.history.replaceState({}, '', url.toString());
+              }}
               className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-colors ${
                 activeTab === t.id
                   ? 'bg-[#4F46E5] text-white shadow-sm'
