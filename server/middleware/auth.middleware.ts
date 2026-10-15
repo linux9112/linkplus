@@ -57,7 +57,8 @@ export async function requireAdmin(
   next: NextFunction
 ): Promise<void> {
   await requireAuth(req, res, () => {
-    if (!req.user || req.user.role !== 'admin') {
+    const userRole = (req.user?.role || '').toLowerCase();
+    if (!req.user || (userRole !== 'admin' && userRole !== 'super_admin')) {
       res.status(403).json({ error: 'Administrator access required' });
       return;
     }

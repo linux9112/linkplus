@@ -127,3 +127,70 @@ export class ApiError extends Error {
     this.name = 'ApiError';
   }
 }
+
+export interface BadgeType {
+  id: string;
+  name: string;
+  public_label: string;
+  publicLabel?: string;
+  description: string;
+  icon: string;
+  color: string;
+  is_active: boolean;
+  isActive?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  active_users_count?: number;
+}
+
+export interface UserBadge {
+  id: string;
+  user_id: string;
+  userId?: string;
+  badge_type_id: string;
+  badgeTypeId?: string;
+  awarded_by: string;
+  awardedBy?: string;
+  awarded_at: string;
+  awardedAt?: string;
+  expires_at?: string | null;
+  expiresAt?: string | null;
+  internal_note?: string | null;
+  internalNote?: string | null;
+  status: 'active' | 'revoked' | 'expired';
+  revoked_by?: string | null;
+  revokedBy?: string | null;
+  revoked_at?: string | null;
+  revokedAt?: string | null;
+  revocation_reason?: string | null;
+  revocationReason?: string | null;
+  badge_type?: BadgeType;
+  badgeType?: BadgeType;
+  awarded_by_username?: string;
+  user?: {
+    id: string;
+    username: string;
+    email: string;
+    profile?: {
+      displayName?: string;
+      avatarUrl?: string | null;
+    };
+  };
+}
+
+export interface PublicBadge {
+  id: string;
+  badge_type_id: string;
+  badgeTypeId?: string;
+  name: string;
+  public_label: string;
+  publicLabel?: string;
+  description: string;
+  icon: string;
+  color: string;
+  awarded_at: string;
+  awardedAt?: string;
+  expires_at?: string | null;
+  expiresAt?: string | null;
+}
+

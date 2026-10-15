@@ -404,4 +404,729 @@ router.put('/platform-settings', async (req: Request, res: Response, next: NextF
   }
 });
 
+// ============================================================================
+// BADGE MANAGEMENT SYSTEM (Super Admin)
+// ============================================================================
+
+/**
+ * GET /api/admin/badges/overview
+ * KPI statistics and recently awarded badges.
+ */
+router.get('/badges/overview', async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const now = new Date();
+
+    const [totalBadgesAwarded, totalVerifiedUsers, totalTrustedUsers, recentlyAwardedRaw] = await Promise.all([
+      prisma.userBadge.count({
+        where: {
+          status: 'active',
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        },
+      }),
+      prisma.userBadge.count({
+        where: {
+          badgeTypeId: 'verified',
+          status: 'active',
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        },
+      }),
+      prisma.userBadge.count({
+        where: {
+          badgeTypeId: 'trusted',
+          status: 'active',
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        },
+      }),
+      prisma.userBadge.findMany({
+        take: 8,
+        orderBy: { awardedAt: 'desc' },
+        include: {
+          badgeType: true,
+          user: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              profile: { select: { displayName: true, avatarUrl: true } },
+            },
+          },
+          awardedByUser: { select: { id: true, username: true } },
+        },
+      }),
+    ]);
+
+    const recentlyAwarded = recentlyAwardedRaw.map((b) => ({
+      id: b.id,
+      user_id: b.userId,
+      username: b.user.username,
+      displayName: b.user.profile?.displayName || b.user.username,
+      avatarUrl: b.user.profile?.avatarUrl,
+      badge: {
+        id: b.badgeType.id,
+        name: b.badgeType.name,
+        public_label: b.badgeType.publicLabel,
+        icon: b.badgeType.icon,
+        color: b.badgeType.color,
+      },
+      awarded_at: b.awardedAt,
+      awarded_by_username: b.awardedByUser.username,
+      status: b.status,
+      expires_at: b.expiresAt,
+      internal_note: b.internalNote,
+    }));
+
+    res.status(200).json({
+      stats: {
+        totalBadgesAwarded,
+        totalVerifiedUsers,
+        totalTrustedUsers,
+      },
+      recentlyAwarded,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/admin/badges/types
+ * List all badge types with active assignment counts.
+ */
+router.get('/badges/types', async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const now = new Date();
+    const types = await prisma.badgeType.findMany({
+      orderBy: { createdAt: 'asc' },
+      include: {
+        _count: {
+          select: {
+            userBadges: {
+              where: {
+                status: 'active',
+                OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+              },
+            },
+          },
+        },
+      },
+    });
+
+    res.status(200).json({
+      badge_types: types.map((t) => ({
+        id: t.id,
+        name: t.name,
+        public_label: t.publicLabel,
+        description: t.description,
+        icon: t.icon,
+        color: t.color,
+        is_active: t.isActive,
+        active_users_count: t._count.userBadges,
+        created_at: t.createdAt,
+        updated_at: t.updatedAt,
+      })),
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/admin/badges/types
+ * Create a new badge type.
+ */
+router.post('/badges/types', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id, name, public_label, description, icon, color, is_active } = req.body || {};
+
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      res.status(400).json({ error: 'Badge name is required' });
+      return;
+    }
+    if (!public_label || typeof public_label !== 'string' || !public_label.trim()) {
+      res.status(400).json({ error: 'Public label is required' });
+      return;
+    }
+    if (!description || typeof description !== 'string' || !description.trim()) {
+      res.status(400).json({ error: 'Badge description is required' });
+      return;
+    }
+    if (!icon || typeof icon !== 'string' || !icon.trim()) {
+      res.status(400).json({ error: 'Badge icon is required' });
+      return;
+    }
+    if (!color || typeof color !== 'string' || !color.trim()) {
+      res.status(400).json({ error: 'Badge color is required' });
+      return;
+    }
+
+    const typeId = (id && typeof id === 'string' ? id : name)
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9_]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+
+    const existing = await prisma.badgeType.findUnique({ where: { id: typeId } });
+    if (existing) {
+      res.status(409).json({ error: `A badge type with ID '${typeId}' already exists.` });
+      return;
+    }
+
+    const created = await prisma.badgeType.create({
+      data: {
+        id: typeId,
+        name: name.trim(),
+        publicLabel: public_label.trim(),
+        description: description.trim(),
+        icon: icon.trim(),
+        color: color.trim(),
+        isActive: is_active !== undefined ? Boolean(is_active) : true,
+      },
+    });
+
+    await prisma.adminAuditLog.create({
+      data: {
+        adminUserId: req.user!.id,
+        action: 'badge_type_created',
+        targetType: 'badge_type',
+        targetId: created.id,
+        details: { name: created.name, publicLabel: created.publicLabel },
+      },
+    });
+
+    res.status(201).json({
+      badge_type: {
+        id: created.id,
+        name: created.name,
+        public_label: created.publicLabel,
+        description: created.description,
+        icon: created.icon,
+        color: created.color,
+        is_active: created.isActive,
+      },
+      message: 'Badge type created successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * PUT /api/admin/badges/types/:id
+ * Modify badge metadata (name, public label, description, icon, color, active status).
+ */
+router.put('/badges/types/:id', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+    const existing = await prisma.badgeType.findUnique({ where: { id } });
+    if (!existing) {
+      res.status(404).json({ error: 'Badge type not found' });
+      return;
+    }
+
+    const { name, public_label, description, icon, color, is_active } = req.body || {};
+
+    const updated = await prisma.badgeType.update({
+      where: { id },
+      data: {
+        name: name ? String(name).trim() : existing.name,
+        publicLabel: public_label ? String(public_label).trim() : existing.publicLabel,
+        description: description ? String(description).trim() : existing.description,
+        icon: icon ? String(icon).trim() : existing.icon,
+        color: color ? String(color).trim() : existing.color,
+        isActive: is_active !== undefined ? Boolean(is_active) : existing.isActive,
+      },
+    });
+
+    await prisma.adminAuditLog.create({
+      data: {
+        adminUserId: req.user!.id,
+        action: 'badge_type_updated',
+        targetType: 'badge_type',
+        targetId: id,
+        details: { name: updated.name, publicLabel: updated.publicLabel, isActive: updated.isActive },
+      },
+    });
+
+    res.status(200).json({
+      badge_type: {
+        id: updated.id,
+        name: updated.name,
+        public_label: updated.publicLabel,
+        description: updated.description,
+        icon: updated.icon,
+        color: updated.color,
+        is_active: updated.isActive,
+      },
+      message: 'Badge type updated successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/admin/badges/users
+ * Search users and retrieve badge assignments with status/type filters.
+ */
+router.get('/badges/users', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string, 10) || 15));
+    const skip = (page - 1) * limit;
+    const search = String(req.query.q || '').trim().toLowerCase();
+    const badgeFilter = String(req.query.badge_type_id || '').trim();
+    const statusFilter = String(req.query.status || 'all').trim().toLowerCase();
+
+    const where: Record<string, any> = {};
+
+    if (search) {
+      where.OR = [
+        { normalizedUsername: { contains: search } },
+        { normalizedEmail: { contains: search } },
+        { profile: { displayName: { contains: search } } },
+      ];
+    }
+
+    if (badgeFilter) {
+      where.assignedBadges = {
+        some: {
+          badgeTypeId: badgeFilter,
+          ...(statusFilter && statusFilter !== 'all' ? { status: statusFilter } : {}),
+        },
+      };
+    } else if (statusFilter && statusFilter !== 'all') {
+      where.assignedBadges = {
+        some: {
+          status: statusFilter,
+        },
+      };
+    }
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          profile: {
+            select: { displayName: true, avatarUrl: true, bio: true },
+          },
+          assignedBadges: {
+            include: {
+              badgeType: true,
+              awardedByUser: { select: { id: true, username: true } },
+              revokedByUser: { select: { id: true, username: true } },
+            },
+            orderBy: { awardedAt: 'desc' },
+          },
+        },
+      }),
+      prisma.user.count({ where }),
+    ]);
+
+    const now = new Date();
+
+    res.status(200).json({
+      users: users.map((u) => ({
+        id: u.id,
+        username: u.username,
+        email: u.email,
+        role: u.role,
+        status: u.status,
+        displayName: u.profile?.displayName || u.username,
+        avatarUrl: u.profile?.avatarUrl,
+        badges: u.assignedBadges.map((b) => {
+          const isExpired = b.expiresAt ? b.expiresAt <= now : false;
+          const effectiveStatus = b.status === 'active' && isExpired ? 'expired' : b.status;
+          return {
+            id: b.id,
+            badge_type_id: b.badgeTypeId,
+            name: b.badgeType.name,
+            public_label: b.badgeType.publicLabel,
+            description: b.badgeType.description,
+            icon: b.badgeType.icon,
+            color: b.badgeType.color,
+            status: effectiveStatus,
+            awarded_at: b.awardedAt,
+            expires_at: b.expiresAt,
+            internal_note: b.internalNote,
+            revocation_reason: b.revocationReason,
+            awarded_by_username: b.awardedByUser.username,
+            revoked_by_username: b.revokedByUser?.username,
+          };
+        }),
+      })),
+      total,
+      page,
+      limit,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/admin/badges/award
+ * Award one or multiple badges to a user.
+ */
+router.post('/badges/award', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { user_id, badge_type_ids, badge_type_id, expires_at, internal_note } = req.body || {};
+
+    if (!user_id || typeof user_id !== 'string') {
+      res.status(400).json({ error: 'Target user ID is required' });
+      return;
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: user_id },
+      include: { profile: true },
+    });
+
+    if (!targetUser) {
+      res.status(404).json({ error: 'Target user not found' });
+      return;
+    }
+
+    // Collect array of badge type IDs
+    const rawIds = Array.isArray(badge_type_ids) ? badge_type_ids : badge_type_id ? [badge_type_id] : [];
+    const typeIds = rawIds.filter((id) => typeof id === 'string' && id.trim()).map((id) => id.trim());
+
+    if (typeIds.length === 0) {
+      res.status(400).json({ error: 'At least one valid badge type ID is required' });
+      return;
+    }
+
+    const expiryDate = expires_at ? new Date(expires_at) : null;
+    if (expires_at && isNaN(expiryDate!.getTime())) {
+      res.status(400).json({ error: 'Invalid expiry date format' });
+      return;
+    }
+
+    const now = new Date();
+    const awardedBadges: any[] = [];
+
+    for (const typeId of typeIds) {
+      const badgeType = await prisma.badgeType.findUnique({ where: { id: typeId } });
+      if (!badgeType) {
+        res.status(404).json({ error: `Badge type '${typeId}' not found.` });
+        return;
+      }
+      if (!badgeType.isActive) {
+        res.status(400).json({ error: `Badge '${badgeType.name}' is currently disabled.` });
+        return;
+      }
+
+      // Check for active duplicate assignment
+      const existingActive = await prisma.userBadge.findFirst({
+        where: {
+          userId: targetUser.id,
+          badgeTypeId: typeId,
+          status: 'active',
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        },
+      });
+
+      if (existingActive) {
+        res.status(409).json({
+          error: `@${targetUser.username} already has an active '${badgeType.publicLabel}' badge.`,
+        });
+        return;
+      }
+
+      const createdBadge = await prisma.userBadge.create({
+        data: {
+          userId: targetUser.id,
+          badgeTypeId: typeId,
+          awardedBy: req.user!.id,
+          awardedAt: now,
+          expiresAt: expiryDate,
+          internalNote: internal_note ? String(internal_note).trim() : null,
+          status: 'active',
+        },
+        include: { badgeType: true },
+      });
+
+      await prisma.adminAuditLog.create({
+        data: {
+          adminUserId: req.user!.id,
+          action: 'badge_awarded',
+          targetType: 'user_badge',
+          targetId: createdBadge.id,
+          details: {
+            username: targetUser.username,
+            badgeName: badgeType.name,
+            expiresAt: expiryDate,
+            note: internal_note,
+          },
+        },
+      });
+
+      awardedBadges.push(createdBadge);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully awarded ${awardedBadges.length} badge(s) to @${targetUser.username}.`,
+      badges: awardedBadges,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/admin/badges/revoke
+ * Revoke an active badge assignment with reason.
+ */
+router.post('/badges/revoke', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { user_badge_id, reason } = req.body || {};
+
+    if (!user_badge_id) {
+      res.status(400).json({ error: 'user_badge_id is required' });
+      return;
+    }
+
+    const badge = await prisma.userBadge.findUnique({
+      where: { id: user_badge_id },
+      include: { user: true, badgeType: true },
+    });
+
+    if (!badge) {
+      res.status(404).json({ error: 'Badge assignment not found' });
+      return;
+    }
+
+    const revocationReason = reason ? String(reason).trim() : 'Revoked by administrator';
+
+    const updated = await prisma.userBadge.update({
+      where: { id: user_badge_id },
+      data: {
+        status: 'revoked',
+        revokedBy: req.user!.id,
+        revokedAt: new Date(),
+        revocationReason,
+      },
+    });
+
+    await prisma.adminAuditLog.create({
+      data: {
+        adminUserId: req.user!.id,
+        action: 'badge_revoked',
+        targetType: 'user_badge',
+        targetId: badge.id,
+        details: {
+          username: badge.user.username,
+          badgeName: badge.badgeType.name,
+          reason: revocationReason,
+        },
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Revoked '${badge.badgeType.publicLabel}' badge from @${badge.user.username}.`,
+      badge: updated,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/admin/badges/restore
+ * Restore a revoked or expired badge back to active.
+ */
+router.post('/badges/restore', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { user_badge_id, expires_at } = req.body || {};
+
+    if (!user_badge_id) {
+      res.status(400).json({ error: 'user_badge_id is required' });
+      return;
+    }
+
+    const badge = await prisma.userBadge.findUnique({
+      where: { id: user_badge_id },
+      include: { user: true, badgeType: true },
+    });
+
+    if (!badge) {
+      res.status(404).json({ error: 'Badge assignment not found' });
+      return;
+    }
+
+    const now = new Date();
+
+    // Prevent duplicate active badge
+    const existingActive = await prisma.userBadge.findFirst({
+      where: {
+        id: { not: badge.id },
+        userId: badge.userId,
+        badgeTypeId: badge.badgeTypeId,
+        status: 'active',
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+    });
+
+    if (existingActive) {
+      res.status(409).json({
+        error: `@${badge.user.username} already has another active assignment of '${badge.badgeType.publicLabel}'.`,
+      });
+      return;
+    }
+
+    const expiryDate = expires_at !== undefined ? (expires_at ? new Date(expires_at) : null) : badge.expiresAt;
+
+    const updated = await prisma.userBadge.update({
+      where: { id: user_badge_id },
+      data: {
+        status: 'active',
+        expiresAt: expiryDate,
+        revokedBy: null,
+        revokedAt: null,
+        revocationReason: null,
+      },
+    });
+
+    await prisma.adminAuditLog.create({
+      data: {
+        adminUserId: req.user!.id,
+        action: 'badge_restored',
+        targetType: 'user_badge',
+        targetId: badge.id,
+        details: {
+          username: badge.user.username,
+          badgeName: badge.badgeType.name,
+        },
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Restored '${badge.badgeType.publicLabel}' badge for @${badge.user.username}.`,
+      badge: updated,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * PUT /api/admin/badges/:id
+ * Modify existing badge assignment expiry or internal administrative note.
+ */
+router.put('/badges/:id', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+    const existing = await prisma.userBadge.findUnique({
+      where: { id },
+      include: { user: true, badgeType: true },
+    });
+
+    if (!existing) {
+      res.status(404).json({ error: 'Badge assignment not found' });
+      return;
+    }
+
+    const { expires_at, internal_note } = req.body || {};
+
+    const updated = await prisma.userBadge.update({
+      where: { id },
+      data: {
+        expiresAt: expires_at !== undefined ? (expires_at ? new Date(expires_at) : null) : existing.expiresAt,
+        internalNote: internal_note !== undefined ? (internal_note ? String(internal_note).trim() : null) : existing.internalNote,
+      },
+    });
+
+    await prisma.adminAuditLog.create({
+      data: {
+        adminUserId: req.user!.id,
+        action: 'badge_assignment_modified',
+        targetType: 'user_badge',
+        targetId: id,
+        details: {
+          username: existing.user.username,
+          badgeName: existing.badgeType.name,
+          expiresAt: updated.expiresAt,
+          note: updated.internalNote,
+        },
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Badge assignment updated successfully.',
+      badge: updated,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/admin/badges/history
+ * Comprehensive audit log of all badge assignments, revocations, and restorations.
+ */
+router.get('/badges/history', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string, 10) || 20));
+    const skip = (page - 1) * limit;
+
+    const [history, total] = await Promise.all([
+      prisma.userBadge.findMany({
+        skip,
+        take: limit,
+        orderBy: { updatedAt: 'desc' },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              profile: { select: { displayName: true } },
+            },
+          },
+          badgeType: true,
+          awardedByUser: { select: { id: true, username: true } },
+          revokedByUser: { select: { id: true, username: true } },
+        },
+      }),
+      prisma.userBadge.count(),
+    ]);
+
+    res.status(200).json({
+      history: history.map((h) => ({
+        id: h.id,
+        userId: h.userId,
+        username: h.user.username,
+        displayName: h.user.profile?.displayName || h.user.username,
+        badge: {
+          id: h.badgeType.id,
+          name: h.badgeType.name,
+          public_label: h.badgeType.publicLabel,
+          icon: h.badgeType.icon,
+          color: h.badgeType.color,
+        },
+        status: h.status,
+        awarded_at: h.awardedAt,
+        expires_at: h.expiresAt,
+        internal_note: h.internalNote,
+        revoked_at: h.revokedAt,
+        revocation_reason: h.revocationReason,
+        awarded_by_username: h.awardedByUser.username,
+        revoked_by_username: h.revokedByUser?.username,
+      })),
+      total,
+      page,
+      limit,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

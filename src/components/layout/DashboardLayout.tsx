@@ -9,6 +9,7 @@ import {
   Palette,
   Settings,
   ShieldAlert,
+  Award,
   LogOut,
   ExternalLink,
   Search,
@@ -43,7 +44,7 @@ export const DashboardLayout: React.FC = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const profileUrl = `${window.location.origin}/${user?.username || ''}`;
-  const isAdmin = user?.role?.toLowerCase() === 'admin';
+  const isAdmin = user?.role?.toLowerCase() === 'admin' || user?.role?.toLowerCase() === 'super_admin';
 
   const navItems = [
     { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -56,7 +57,10 @@ export const DashboardLayout: React.FC = () => {
   ];
 
   if (isAdmin) {
-    navItems.push({ to: '/dashboard/admin', label: 'Admin Panel', icon: ShieldAlert });
+    navItems.push(
+      { to: '/dashboard/admin?tab=badges', label: 'Badge Management', icon: Award },
+      { to: '/dashboard/admin', label: 'Admin Panel', icon: ShieldAlert }
+    );
   }
 
   // Fetch user links for search palette

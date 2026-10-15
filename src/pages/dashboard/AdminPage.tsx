@@ -12,6 +12,7 @@ import {
   Trash2,
   ExternalLink,
   Activity,
+  Award,
 } from 'lucide-react';
 import { api } from '../../api/client';
 import Card from '../../components/ui/Card';
@@ -19,10 +20,11 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useToast } from '../../components/ui/Toast';
+import BadgeManagementPanel from '../../components/admin/BadgeManagementPanel';
 
 export const AdminPage: React.FC = () => {
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'users' | 'reports' | 'links' | 'audit' | 'settings'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'badges' | 'reports' | 'links' | 'audit' | 'settings'>('badges');
   const [loading, setLoading] = useState(true);
 
   const [stats, setStats] = useState({
@@ -74,6 +76,14 @@ export const AdminPage: React.FC = () => {
   useEffect(() => {
     fetchAdminData();
   }, [userSearch]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    if (tabParam && ['users', 'badges', 'reports', 'links', 'audit', 'settings'].includes(tabParam)) {
+      setActiveTab(tabParam as any);
+    }
+  }, []);
 
   const handleSuspendUser = async (userId: string, username: string) => {
     try {
@@ -187,6 +197,7 @@ export const AdminPage: React.FC = () => {
       {/* Admin Navigation Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-[#E5E7EB] dark:border-[#343B4B] pb-3">
         {[
+          { id: 'badges', label: 'Badge Management', icon: Award },
           { id: 'users', label: 'Users & Accounts', icon: Users },
           { id: 'reports', label: `Moderation Reports (${stats.pendingReports})`, icon: Flag },
           { id: 'links', label: 'Link Moderation', icon: Link2 },
@@ -210,6 +221,9 @@ export const AdminPage: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Tab: Badge Management System */}
+      {activeTab === 'badges' && <BadgeManagementPanel />}
 
       {/* Tab 1: Users & Accounts */}
       {activeTab === 'users' && (

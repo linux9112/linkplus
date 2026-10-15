@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Share2, QrCode, Flag, Sparkles, ArrowLeft, Copy, Check } from 'lucide-react';
 import { api } from '../api/client';
-import type { Profile, Link as LinkItem } from '../types/index';
+import type { Profile, Link as LinkItem, PublicBadge } from '../types/index';
 import PublicProfileRenderer from '../components/profile/PublicProfileRenderer';
 import StyledQrCanvas from '../components/qr/StyledQrCanvas';
 import Modal from '../components/ui/Modal';
@@ -19,6 +19,7 @@ export const PublicProfilePage: React.FC = () => {
   const [profileUser, setProfileUser] = useState<{ username: string }>({ username: username || '' });
   const [profile, setProfile] = useState<Profile | null>(null);
   const [links, setLinks] = useState<LinkItem[]>([]);
+  const [badges, setBadges] = useState<PublicBadge[]>([]);
 
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
@@ -45,6 +46,7 @@ export const PublicProfilePage: React.FC = () => {
         setProfileUser(res.user || { username });
         setProfile(res.profile);
         setLinks(res.links || []);
+        setBadges(res.badges || []);
 
         // Update document title & Open Graph meta tags dynamically
         const displayName = res.profile?.display_name || res.profile?.displayName || username;
@@ -163,6 +165,7 @@ export const PublicProfilePage: React.FC = () => {
         username={profileUser.username || username || ''}
         profile={profile}
         links={links}
+        badges={badges}
         onReportClick={() => setReportModalOpen(true)}
       />
 

@@ -298,6 +298,80 @@ router.get('/link-logo/:linkId', async (req: Request, res: Response, next: NextF
 });
 
 /**
+ * GET /api/public/badges/verify/:id
+ * Public verification endpoint for a badge award.
+ * Returns only public verification info (badge name, description, active status, awarded date, user info).
+ * Never exposes admin notes or revocation details.
+ */
+router.get('/badges/verify/:id', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const rawId = String(req.params.id || '').trim();
+    if (!rawId) {
+      res.status(404).json({ error: 'Badge not found' });
+      return;
+    }
+
+    const badge = await prisma.userBadge.findUnique({
+      where: { id: rawId },
+      include: {
+        badgeType: true,
+        user: {
+          select: {
+            id: true,
+            username: true,
+            status: true,
+            profile: {
+              select: {
+                displayName: true,
+                avatarUrl: true,
+                isPublic: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!badge || !badge.user || badge.user.status !== 'active') {
+      res.status(404).json({ error: 'Badge record not found' });
+      return;
+    }
+
+    const now = new Date();
+    const isExpired = badge.expiresAt ? badge.expiresAt <= now : false;
+    const isLiveActive = badge.status === 'active' && !isExpired && badge.badgeType.isActive;
+
+    res.status(200).json({
+      badge: {
+        id: badge.id,
+        name: badge.badgeType.name,
+        public_label: badge.badgeType.publicLabel,
+        publicLabel: badge.badgeType.publicLabel,
+        description: badge.badgeType.description,
+        icon: badge.badgeType.icon,
+        color: badge.badgeType.color,
+        is_active: isLiveActive,
+        isActive: isLiveActive,
+        awarded_at: badge.awardedAt.toISOString(),
+        awardedAt: badge.awardedAt.toISOString(),
+        expires_at: badge.expiresAt ? badge.expiresAt.toISOString() : null,
+        expiresAt: badge.expiresAt ? badge.expiresAt.toISOString() : null,
+      },
+      user: {
+        username: badge.user.username,
+        display_name: badge.user.profile?.displayName || badge.user.username,
+        displayName: badge.user.profile?.displayName || badge.user.username,
+        avatar_url: badge.user.profile?.avatarUrl || null,
+        avatarUrl: badge.user.profile?.avatarUrl || null,
+        profile_url: `${env.APP_URL.replace(/\/$/, '')}/${badge.user.username}`,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /api/public/:username
  * Resolve public profile, active/scheduled links, and record privacy-safe analytics event.
  */
@@ -323,22 +397,59 @@ router.get('/:username', async (req: Request, res: Response, next: NextFunction)
 
     const now = new Date();
 
-    const links = await prisma.link.findMany({
-      where: {
-        userId: user.id,
-        isActive: true,
-        isHidden: false,
-        AND: [
-          {
-            OR: [{ scheduledStart: null }, { scheduledStart: { lte: now } }],
+    const [links, userBadges] = await Promise.all([
+      prisma.link.findMany({
+        where: {
+          userId: user.id,
+          isActive: true,
+          isHidden: false,
+          AND: [
+            {
+              OR: [{ scheduledStart: null }, { scheduledStart: { lte: now } }],
+            },
+            {
+              OR: [{ scheduledEnd: null }, { scheduledEnd: { gte: now } }],
+            },
+          ],
+        },
+        orderBy: [{ isPinned: 'desc' }, { position: 'asc' }, { createdAt: 'desc' }],
+      }),
+      prisma.userBadge.findMany({
+        where: {
+          userId: user.id,
+          status: 'active',
+          badgeType: {
+            isActive: true,
           },
-          {
-            OR: [{ scheduledEnd: null }, { scheduledEnd: { gte: now } }],
-          },
-        ],
-      },
-      orderBy: [{ isPinned: 'desc' }, { position: 'asc' }, { createdAt: 'desc' }],
-    });
+          OR: [
+            { expiresAt: null },
+            { expiresAt: { gt: now } },
+          ],
+        },
+        include: {
+          badgeType: true,
+        },
+        orderBy: {
+          awardedAt: 'asc',
+        },
+      }),
+    ]);
+
+    const publicBadges = userBadges.map((ub) => ({
+      id: ub.id,
+      badge_type_id: ub.badgeTypeId,
+      badgeTypeId: ub.badgeTypeId,
+      name: ub.badgeType.name,
+      public_label: ub.badgeType.publicLabel,
+      publicLabel: ub.badgeType.publicLabel,
+      description: ub.badgeType.description,
+      icon: ub.badgeType.icon,
+      color: ub.badgeType.color,
+      awarded_at: ub.awardedAt.toISOString(),
+      awardedAt: ub.awardedAt.toISOString(),
+      expires_at: ub.expiresAt ? ub.expiresAt.toISOString() : null,
+      expiresAt: ub.expiresAt ? ub.expiresAt.toISOString() : null,
+    }));
 
     // Privacy-conscious analytics logging (bot-filtered, daily-salted hash, no raw IP stored)
     const userAgent = req.get('User-Agent') || '';
@@ -392,6 +503,7 @@ router.get('/:username', async (req: Request, res: Response, next: NextFunction)
       },
       profile: formatProfile(user.profile),
       links: links.map(formatLink),
+      badges: publicBadges,
       meta: {
         canonicalUrl,
         title: `${user.profile.displayName || user.username} (@${user.username}) | LinkPulse`,

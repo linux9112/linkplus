@@ -31,6 +31,9 @@ model User {
   resolvedReports         ModerationReport[]       @relation("ResolvedByUser")
   adminAuditLogs          AdminAuditLog[]
   updatedPlatformSettings PlatformSetting[]
+  assignedBadges          UserBadge[]              @relation("UserAssignedBadges")
+  awardedBadges           UserBadge[]              @relation("AwardedByAdmin")
+  revokedBadges           UserBadge[]              @relation("RevokedByAdmin")
 
   @@index([role])
   @@index([status])
@@ -237,3 +240,47 @@ model PlatformSetting {
   @@index([isPublic])
   @@map("platform_settings")
 }
+
+model BadgeType {
+  id          String   @id @db.VarChar(50)
+  name        String   @db.VarChar(100)
+  publicLabel String   @map("public_label") @db.VarChar(100)
+  description String   @db.Text
+  icon        String   @db.VarChar(50)
+  color       String   @db.VarChar(20)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+
+  userBadges  UserBadge[]
+
+  @@index([isActive])
+  @@map("badge_types")
+}
+
+model UserBadge {
+  id               String    @id @default(uuid()) @db.VarChar(36)
+  userId           String    @map("user_id") @db.VarChar(36)
+  badgeTypeId      String    @map("badge_type_id") @db.VarChar(50)
+  awardedBy        String    @map("awarded_by") @db.VarChar(36)
+  awardedAt        DateTime  @default(now()) @map("awarded_at") @db.DateTime(3)
+  expiresAt        DateTime? @map("expires_at") @db.DateTime(3)
+  internalNote     String?   @map("internal_note") @db.Text
+  status           String    @default("active") @db.VarChar(20)
+  revokedBy        String?   @map("revoked_by") @db.VarChar(36)
+  revokedAt        DateTime? @map("revoked_at") @db.DateTime(3)
+  revocationReason String?   @map("revocation_reason") @db.Text
+  createdAt        DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+
+  user             User      @relation("UserAssignedBadges", fields: [userId], references: [id], onDelete: Cascade)
+  awardedByUser    User      @relation("AwardedByAdmin", fields: [awardedBy], references: [id], onDelete: Cascade)
+  revokedByUser    User?     @relation("RevokedByAdmin", fields: [revokedBy], references: [id], onDelete: SetNull)
+  badgeType        BadgeType @relation(fields: [badgeTypeId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([badgeTypeId])
+  @@index([expiresAt])
+  @@map("user_badges")
+}
+

@@ -22,8 +22,16 @@ import {
   Heart,
   Calendar,
   FileText,
+  CheckCircle2,
+  ShieldCheck,
+  Sparkles,
+  Flame,
+  Award,
+  Handshake,
+  X,
+  BadgeCheck,
 } from 'lucide-react';
-import type { Profile, Link as LinkItem } from '../../types/index';
+import type { Profile, Link as LinkItem, PublicBadge } from '../../types/index';
 import Avatar from '../ui/Avatar';
 import { sanitizeCustomCss } from '../../utils/contrast';
 
@@ -539,6 +547,35 @@ export function renderLinkIcon(
   );
 }
 
+export function renderBadgeIcon(icon: string, className = 'w-3.5 h-3.5') {
+  const norm = (icon || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (norm.includes('check') || norm.includes('verified')) {
+    return <CheckCircle2 className={className} />;
+  }
+  if (norm.includes('shield') || norm.includes('trusted')) {
+    return <ShieldCheck className={className} />;
+  }
+  if (norm.includes('sparkle') || norm.includes('creator')) {
+    return <Sparkles className={className} />;
+  }
+  if (norm.includes('flame') || norm.includes('featured') || norm.includes('fire')) {
+    return <Flame className={className} />;
+  }
+  if (norm.includes('heart') || norm.includes('supporter')) {
+    return <Heart className={className} />;
+  }
+  if (norm.includes('award') || norm.includes('top') || norm.includes('trophy')) {
+    return <Award className={className} />;
+  }
+  if (norm.includes('handshake') || norm.includes('partner')) {
+    return <Handshake className={className} />;
+  }
+  if (norm.includes('star')) {
+    return <Star className={className} />;
+  }
+  return <BadgeCheck className={className} />;
+}
+
 export function renderSocialIcon(platform: string) {
   const key = platform.toLowerCase();
   const meta = SOCIAL_PLATFORMS_META[key];
@@ -569,6 +606,7 @@ export interface PublicProfileRendererProps {
   username: string;
   profile: Profile;
   links: LinkItem[];
+  badges?: PublicBadge[];
   isPreview?: boolean;
   previewDevice?: 'mobile' | 'desktop';
   onReportClick?: (linkId?: string) => void;
@@ -578,11 +616,13 @@ export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
   username,
   profile,
   links,
+  badges = [],
   isPreview = false,
   previewDevice = 'mobile',
   onReportClick,
 }) => {
   const [expandedEmbeds, setExpandedEmbeds] = useState<Record<string, boolean>>({});
+  const [selectedBadge, setSelectedBadge] = useState<PublicBadge | null>(null);
 
   const rawTheme = (profile?.theme_settings || (profile as any)?.themeSettings || {}) as Record<string, any>;
   const presetKey = String(rawTheme.preset || 'default');
@@ -815,9 +855,46 @@ export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
         {displayName}
       </h1>
 
-      <p style={{ color: customSubtextColor }} className="text-xs font-semibold opacity-75 mt-0.5">
-        @{username}
-      </p>
+      <div
+        className={`flex flex-wrap items-center gap-2 mt-1 max-w-full ${
+          profileAlignment === 'left'
+            ? 'justify-start'
+            : profileAlignment === 'right'
+            ? 'justify-end'
+            : 'justify-center'
+        }`}
+      >
+        <p style={{ color: customSubtextColor }} className="text-xs font-semibold opacity-75">
+          @{username}
+        </p>
+
+        {badges && badges.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {badges.map((b) => {
+              const label = b.public_label || b.publicLabel || b.name;
+              const color = b.color || '#4F46E5';
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => setSelectedBadge(b)}
+                  title={`${label}: ${b.description} (Click to verify)`}
+                  aria-label={`${label} badge: ${b.description}. Click to verify.`}
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border shadow-xs transition-transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-xs select-none"
+                  style={{
+                    backgroundColor: `${color}1A`,
+                    borderColor: `${color}4D`,
+                    color: color,
+                  }}
+                >
+                  {renderBadgeIcon(b.icon, 'w-3 h-3 flex-shrink-0')}
+                  <span>{label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {tagline && (
         <p
@@ -1203,6 +1280,89 @@ export const PublicProfileRenderer: React.FC<PublicProfileRendererProps> = ({
                 Report Profile
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Public Badge Verification Modal */}
+      {selectedBadge && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs text-[#171923] dark:text-[#F9FAFB]"
+          onClick={() => setSelectedBadge(null)}
+        >
+          <div
+            className="relative w-full max-w-sm bg-white dark:bg-[#1A1D27] border border-[#E5E7EB] dark:border-[#343B4B] rounded-2xl shadow-2xl p-6 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setSelectedBadge(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-xl text-[#626B7A] dark:text-[#A7AFBD] hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex flex-col items-center text-center">
+              <div
+                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3 shadow-md"
+                style={{
+                  backgroundColor: `${selectedBadge.color || '#4F46E5'}20`,
+                  color: selectedBadge.color || '#4F46E5',
+                  border: `2px solid ${selectedBadge.color || '#4F46E5'}40`,
+                }}
+              >
+                {renderBadgeIcon(selectedBadge.icon, 'w-8 h-8')}
+              </div>
+
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 mb-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Active LinkPlus Badge
+              </div>
+
+              <h3 className="text-lg font-bold text-[#171923] dark:text-[#F9FAFB]">
+                {selectedBadge.public_label || selectedBadge.publicLabel || selectedBadge.name}
+              </h3>
+
+              <p className="text-xs text-[#626B7A] dark:text-[#A7AFBD] mt-1.5 max-w-xs leading-relaxed">
+                {selectedBadge.description}
+              </p>
+
+              <div className="w-full mt-4 pt-3 border-t border-[#E5E7EB] dark:border-[#343B4B] space-y-2 text-left text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[#626B7A] dark:text-[#A7AFBD]">Recognized Account:</span>
+                  <span className="font-semibold text-[#171923] dark:text-[#F9FAFB]">@{username}</span>
+                </div>
+                {(selectedBadge.awarded_at || selectedBadge.awardedAt) && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#626B7A] dark:text-[#A7AFBD]">Awarded Date:</span>
+                    <span className="font-medium text-[#171923] dark:text-[#F9FAFB]">
+                      {new Date(selectedBadge.awarded_at || selectedBadge.awardedAt!).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-[#626B7A] dark:text-[#A7AFBD]">Issuer:</span>
+                  <span className="font-semibold text-[#4F46E5] dark:text-[#818CF8]">LinkPlus Official</span>
+                </div>
+              </div>
+
+              <div className="w-full mt-5">
+                <button
+                  type="button"
+                  onClick={() => setSelectedBadge(null)}
+                  className="w-full py-2.5 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-semibold shadow-sm transition-colors"
+                >
+                  Close Verification
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

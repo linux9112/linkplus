@@ -25,6 +25,7 @@ import {
   Pin,
   Wifi,
   Battery,
+  Award,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
@@ -39,8 +40,9 @@ import PublicProfileRenderer, {
   THEME_PRESETS,
   SOCIAL_PLATFORMS_META,
   renderLinkIcon,
+  renderBadgeIcon,
 } from '../../components/profile/PublicProfileRenderer';
-import type { Link as LinkItem, Profile } from '../../types/index';
+import type { Link as LinkItem, Profile, UserBadge } from '../../types/index';
 
 const SOCIAL_OPTIONS = [
   { id: 'youtube', label: 'YouTube', placeholder: 'https://youtube.com/@channel' },
@@ -71,9 +73,13 @@ export const ProfilePage: React.FC = () => {
   const { showToast } = useToast();
 
   // Active studio tab
-  const [activeTab, setActiveTab] = useState<'info' | 'socials' | 'links' | 'appearance'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'socials' | 'links' | 'appearance' | 'badges'>('info');
   const [mobileViewMode, setMobileViewMode] = useState<'editor' | 'preview'>('editor');
   const [previewDevice, setPreviewDevice] = useState<'mobile' | 'desktop'>('mobile');
+
+  // Badges state
+  const [userBadges, setUserBadges] = useState<UserBadge[]>([]);
+  const [loadingBadges, setLoadingBadges] = useState(false);
 
   // Profile fields state
   const [displayName, setDisplayName] = useState('');
@@ -178,6 +184,30 @@ export const ProfilePage: React.FC = () => {
   useEffect(() => {
     fetchLinks();
   }, [fetchLinks]);
+
+  // Load user badges
+  const fetchUserBadges = useCallback(async () => {
+    try {
+      setLoadingBadges(true);
+      const res = await api.get<{ badges: UserBadge[] }>('/api/profile/badges');
+      setUserBadges(res.badges || []);
+    } catch {
+      // silently handle
+    } finally {
+      setLoadingBadges(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUserBadges();
+  }, [fetchUserBadges]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'badges') {
+      setActiveTab('badges');
+    }
+  }, []);
 
   // Prompt before unload if dirty
   useEffect(() => {
@@ -630,6 +660,18 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
+  // Build live preview badges
+  const previewBadges = userBadges.map((b: any) => ({
+    id: b.id,
+    badge_type_id: b.badge_type_id || b.badgeTypeId || '',
+    name: b.name || b.badge_type?.name || '',
+    public_label: b.public_label || b.publicLabel || b.badge_type?.public_label || '',
+    description: b.description || b.badge_type?.description || '',
+    icon: b.icon || b.badge_type?.icon || 'award',
+    color: b.color || b.badge_type?.color || '#4F46E5',
+    awarded_at: b.awarded_at || b.awardedAt || '',
+  }));
+
   // Build live preview profile object
   const previewProfileData: Profile = {
     id: profile?.id || 'preview',
@@ -849,6 +891,23 @@ export const ProfilePage: React.FC = () => {
               }`}
             >
               4. Themes & Design
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('badges')}
+              className={`px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                activeTab === 'badges'
+                  ? 'border-[#4F46E5] text-[#4F46E5] dark:text-[#818CF8]'
+                  : 'border-transparent text-[#626B7A] dark:text-[#A7AFBD] hover:text-[#171923] dark:hover:text-[#F9FAFB]'
+              }`}
+            >
+              <Award className="w-4 h-4 text-amber-500" />
+              <span>5. My Badges</span>
+              {userBadges.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 font-bold">
+                  {userBadges.length}
+                </span>
+              )}
             </button>
           </div>
 
@@ -1615,6 +1674,121 @@ export const ProfilePage: React.FC = () => {
             </div>
           )}
 
+          {/* TAB 5: My Badges */}
+          {activeTab === 'badges' && (
+            <div className="space-y-6">
+              <Card>
+                <div className="p-5 sm:p-6 space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E5E7EB] dark:border-[#343B4B] pb-4">
+                    <div>
+                      <h2 className="text-lg font-bold text-[#171923] dark:text-[#F9FAFB] flex items-center gap-2">
+                        <Award className="w-5 h-5 text-amber-500" />
+                        <span>My Badges</span>
+                      </h2>
+                      <p className="text-xs text-[#626B7A] dark:text-[#A7AFBD] mt-0.5">
+                        Official recognition badges awarded to your LinkPlus account
+                      </p>
+                    </div>
+                    {userBadges.length > 0 && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                        {userBadges.length} Active {userBadges.length === 1 ? 'Badge' : 'Badges'}
+                      </span>
+                    )}
+                  </div>
+
+                  {loadingBadges ? (
+                    <div className="py-12 flex justify-center">
+                      <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : userBadges.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {userBadges.map((b: any) => {
+                        const badgeColor = b.color || b.badge_type?.color || '#4F46E5';
+                        const badgeLabel = b.public_label || b.publicLabel || b.name || b.badge_type?.public_label || b.badge_type?.name;
+                        const badgeDesc = b.description || b.badge_type?.description || '';
+                        const badgeIcon = b.icon || b.badge_type?.icon || 'award';
+                        const awardedDate = b.awarded_at || b.awardedAt;
+                        const expiresDate = b.expires_at || b.expiresAt;
+
+                        return (
+                          <div
+                            key={b.id}
+                            className="bg-white dark:bg-[#202430] border border-[#E5E7EB] dark:border-[#343B4B] rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden"
+                          >
+                            <div
+                              className="absolute top-0 left-0 right-0 h-1"
+                              style={{ backgroundColor: badgeColor }}
+                            />
+                            <div className="flex items-start gap-3.5">
+                              <div
+                                className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"
+                                style={{
+                                  backgroundColor: `${badgeColor}18`,
+                                  color: badgeColor,
+                                  border: `1.5px solid ${badgeColor}35`,
+                                }}
+                              >
+                                {renderBadgeIcon(badgeIcon, 'w-6 h-6')}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <h3 className="font-bold text-sm text-[#171923] dark:text-[#F9FAFB] truncate">
+                                    {badgeLabel}
+                                  </h3>
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                                    Active
+                                  </span>
+                                </div>
+                                <p className="text-xs text-[#626B7A] dark:text-[#A7AFBD] mt-1 leading-relaxed">
+                                  {badgeDesc}
+                                </p>
+                                <div className="mt-3 pt-2.5 border-t border-[#E5E7EB] dark:border-[#343B4B] flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#626B7A] dark:text-[#A7AFBD]">
+                                  {awardedDate && (
+                                    <span>
+                                      Awarded: <strong className="text-[#171923] dark:text-white font-medium">{new Date(awardedDate).toLocaleDateString()}</strong>
+                                    </span>
+                                  )}
+                                  <span>
+                                    {expiresDate ? (
+                                      <>Expires: <strong className="text-[#171923] dark:text-white font-medium">{new Date(expiresDate).toLocaleDateString()}</strong></>
+                                    ) : (
+                                      <strong className="text-emerald-600 dark:text-emerald-400 font-medium">Permanent</strong>
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 px-4 bg-[#F7F8FA] dark:bg-[#171923] rounded-2xl border border-dashed border-[#E5E7EB] dark:border-[#343B4B]">
+                      <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-500 border border-amber-200 dark:border-amber-800 flex items-center justify-center mx-auto mb-3 shadow-xs">
+                        <Award className="w-7 h-7" />
+                      </div>
+                      <h3 className="text-base font-bold text-[#171923] dark:text-[#F9FAFB] mb-1">
+                        No Badges Yet
+                      </h3>
+                      <p className="text-xs text-[#626B7A] dark:text-[#A7AFBD] max-w-md mx-auto leading-relaxed">
+                        No badges yet. LinkPlus recognition badges are awarded by the platform.
+                      </p>
+                      <div className="mt-5 p-4 max-w-md mx-auto bg-white dark:bg-[#202430] rounded-xl border border-[#E5E7EB] dark:border-[#343B4B] text-left text-xs space-y-2 text-[#626B7A] dark:text-[#A7AFBD]">
+                        <p className="font-semibold text-[#171923] dark:text-white">
+                          How do LinkPlus badges work?
+                        </p>
+                        <p>
+                          LinkPlus badges (such as Verified, Trusted, Official Creator, and Partner) highlight trusted creators and authentic identities. Badges appear automatically beside your username on your public profile.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </div>
+          )}
+
           {/* Sticky Bottom Actions Bar */}
           <div className="sticky bottom-4 z-20 flex items-center justify-between p-4 bg-white/95 dark:bg-[#202430]/95 backdrop-blur-md rounded-2xl border border-[#E5E7EB] dark:border-[#343B4B] shadow-xl">
             <div className="flex items-center gap-2">
@@ -1726,6 +1900,7 @@ export const ProfilePage: React.FC = () => {
                     username={user?.username || 'user'}
                     profile={previewProfileData}
                     links={previewLinks}
+                    badges={previewBadges}
                     isPreview={true}
                   />
                 </div>
@@ -1753,6 +1928,7 @@ export const ProfilePage: React.FC = () => {
                     username={user?.username || 'user'}
                     profile={previewProfileData}
                     links={previewLinks}
+                    badges={previewBadges}
                     isPreview={true}
                   />
                 </div>

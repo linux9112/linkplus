@@ -344,4 +344,54 @@ router.put('/username', requireAuth, async (req: Request, res: Response, next: N
   }
 });
 
+/**
+ * GET /api/profile/badges
+ * Retrieve the authenticated user's active/awarded badges.
+ */
+router.get('/badges', requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const now = new Date();
+    const badges = await prisma.userBadge.findMany({
+      where: {
+        userId: req.user!.id,
+        status: 'active',
+        badgeType: {
+          isActive: true,
+        },
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: now } },
+        ],
+      },
+      include: {
+        badgeType: true,
+      },
+      orderBy: {
+        awardedAt: 'desc',
+      },
+    });
+
+    const formatted = badges.map((b) => ({
+      id: b.id,
+      badge_type_id: b.badgeTypeId,
+      badgeTypeId: b.badgeTypeId,
+      name: b.badgeType.name,
+      public_label: b.badgeType.publicLabel,
+      publicLabel: b.badgeType.publicLabel,
+      description: b.badgeType.description,
+      icon: b.badgeType.icon,
+      color: b.badgeType.color,
+      awarded_at: b.awardedAt.toISOString(),
+      awardedAt: b.awardedAt.toISOString(),
+      expires_at: b.expiresAt ? b.expiresAt.toISOString() : null,
+      expiresAt: b.expiresAt ? b.expiresAt.toISOString() : null,
+      status: b.status,
+    }));
+
+    res.status(200).json({ badges: formatted });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
