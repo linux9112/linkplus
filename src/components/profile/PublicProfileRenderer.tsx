@@ -16,6 +16,12 @@ import {
   ChevronRight,
   Folder,
   BookOpen,
+  Youtube,
+  Code,
+  Star,
+  Heart,
+  Calendar,
+  FileText,
 } from 'lucide-react';
 import type { Profile, Link as LinkItem } from '../../types/index';
 import Avatar from '../ui/Avatar';
@@ -318,55 +324,217 @@ export const SOCIAL_PLATFORMS_META: Record<
   },
 };
 
-export function renderLinkIcon(iconName?: string | null, title?: string, destinationUrl?: string) {
-  const norm = `${iconName || ''} ${title || ''} ${destinationUrl || ''}`.toLowerCase();
+export function renderLinkIcon(
+  iconName?: string | null,
+  title?: string,
+  destinationUrl?: string,
+  size: 'sm' | 'md' = 'md'
+): JSX.Element {
+  const cleanIcon = (iconName || '').toLowerCase().trim();
+  const norm = `${cleanIcon} ${title || ''} ${destinationUrl || ''}`.toLowerCase();
 
-  if (norm.includes('youtube') || norm.includes('video')) {
+  const isSm = size === 'sm';
+  const containerBase = isSm
+    ? 'w-7 h-7 rounded-lg flex items-center justify-center shadow-xs shrink-0 transition-transform'
+    : 'w-10 h-10 rounded-xl flex items-center justify-center shadow-xs shrink-0 transition-transform';
+  const iconCls = isSm ? 'w-3.5 h-3.5' : 'w-5 h-5';
+
+  // 1. YouTube / Video
+  if (
+    cleanIcon === 'youtube' ||
+    cleanIcon === 'video' ||
+    (!cleanIcon && (norm.includes('youtube') || norm.includes('youtu.be') || norm.includes('video')))
+  ) {
     return (
-      <div className="w-10 h-10 rounded-xl bg-[#FF0000] text-white flex items-center justify-center shadow-xs shrink-0">
-        <Video className="w-5 h-5 fill-current" />
-      </div>
-    );
-  }
-  if (norm.includes('project') || norm.includes('folder') || norm.includes('work') || norm.includes('portfolio')) {
-    return (
-      <div className="w-10 h-10 rounded-xl bg-[#2563EB] text-white flex items-center justify-center shadow-xs shrink-0">
-        <Folder className="w-5 h-5 fill-current" />
-      </div>
-    );
-  }
-  if (norm.includes('note') || norm.includes('study') || norm.includes('book') || norm.includes('doc') || norm.includes('course')) {
-    return (
-      <div className="w-10 h-10 rounded-xl bg-[#16A34A] text-white flex items-center justify-center shadow-xs shrink-0">
-        <BookOpen className="w-5 h-5" />
-      </div>
-    );
-  }
-  if (norm.includes('contact') || norm.includes('mail') || norm.includes('message') || norm.includes('chat')) {
-    return (
-      <div className="w-10 h-10 rounded-xl bg-[#9333EA] text-white flex items-center justify-center shadow-xs shrink-0">
-        <Mail className="w-5 h-5" />
-      </div>
-    );
-  }
-  if (norm.includes('github') || norm.includes('code') || norm.includes('repo')) {
-    return (
-      <div className="w-10 h-10 rounded-xl bg-[#1F2937] text-white flex items-center justify-center shadow-xs shrink-0">
-        <Github className="w-5 h-5" />
-      </div>
-    );
-  }
-  if (norm.includes('shop') || norm.includes('store') || norm.includes('buy') || norm.includes('product')) {
-    return (
-      <div className="w-10 h-10 rounded-xl bg-[#D97706] text-white flex items-center justify-center shadow-xs shrink-0">
-        <ShoppingBag className="w-5 h-5" />
+      <div className={`${containerBase} bg-[#FF0000] text-white`}>
+        <Youtube className={`${iconCls} fill-current`} />
       </div>
     );
   }
 
+  // 2. Instagram
+  if (
+    cleanIcon === 'instagram' ||
+    cleanIcon === 'insta' ||
+    (!cleanIcon && (norm.includes('instagram') || norm.includes('instagr.am')))
+  ) {
+    return (
+      <div
+        className={`${containerBase} text-white`}
+        style={{
+          background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+        }}
+      >
+        <Instagram className={iconCls} />
+      </div>
+    );
+  }
+
+  // 3. LinkedIn
+  if (
+    cleanIcon === 'linkedin' ||
+    (!cleanIcon && norm.includes('linkedin'))
+  ) {
+    return (
+      <div className={`${containerBase} bg-[#0A66C2] text-white`}>
+        <Linkedin className={`${iconCls} fill-current`} />
+      </div>
+    );
+  }
+
+  // 4. Twitter / X
+  if (
+    cleanIcon === 'twitter' ||
+    cleanIcon === 'x' ||
+    (!cleanIcon && (norm.includes('twitter.com') || norm.includes('x.com')))
+  ) {
+    return (
+      <div className={`${containerBase} bg-[#000000] text-white`}>
+        <Twitter className={`${iconCls} fill-current`} />
+      </div>
+    );
+  }
+
+  // 5. GitHub
+  if (
+    cleanIcon === 'github' ||
+    (!cleanIcon && (norm.includes('github.com') || norm.includes('repo')))
+  ) {
+    return (
+      <div className={`${containerBase} bg-[#24292e] text-white`}>
+        <Github className={`${iconCls} fill-current`} />
+      </div>
+    );
+  }
+
+  // 6. Music / Spotify
+  if (
+    cleanIcon === 'music' ||
+    cleanIcon === 'spotify' ||
+    (!cleanIcon && (norm.includes('spotify') || norm.includes('music') || norm.includes('soundcloud') || norm.includes('podcast')))
+  ) {
+    return (
+      <div className={`${containerBase} bg-[#1DB954] text-white`}>
+        <Music className={iconCls} />
+      </div>
+    );
+  }
+
+  // 7. Shop / Store
+  if (
+    cleanIcon === 'shop' ||
+    cleanIcon === 'store' ||
+    (!cleanIcon && (norm.includes('shop') || norm.includes('store') || norm.includes('buy') || norm.includes('product') || norm.includes('amazon') || norm.includes('etsy')))
+  ) {
+    return (
+      <div className={`${containerBase} bg-[#D97706] text-white`}>
+        <ShoppingBag className={iconCls} />
+      </div>
+    );
+  }
+
+  // 8. Blog / Articles
+  if (
+    cleanIcon === 'blog' ||
+    (!cleanIcon && (norm.includes('blog') || norm.includes('medium.com') || norm.includes('substack') || norm.includes('article') || norm.includes('newsletter')))
+  ) {
+    return (
+      <div className={`${containerBase} bg-[#0D9488] text-white`}>
+        <FileText className={iconCls} />
+      </div>
+    );
+  }
+
+  // 9. Code / Dev
+  if (
+    cleanIcon === 'code' ||
+    (!cleanIcon && (norm.includes('code') || norm.includes('codepen') || norm.includes('gitlab') || norm.includes('dev.to') || norm.includes('leetcode')))
+  ) {
+    return (
+      <div className={`${containerBase} bg-[#0F172A] text-[#38BDF8] border border-sky-500/20`}>
+        <Code className={iconCls} />
+      </div>
+    );
+  }
+
+  // 10. Star / Highlight
+  if (cleanIcon === 'star' || (!cleanIcon && norm.includes('star'))) {
+    return (
+      <div className={`${containerBase} bg-[#F59E0B] text-white`}>
+        <Star className={`${iconCls} fill-current`} />
+      </div>
+    );
+  }
+
+  // 11. Heart / Sponsor
+  if (
+    cleanIcon === 'heart' ||
+    (!cleanIcon && (norm.includes('heart') || norm.includes('support') || norm.includes('patreon') || norm.includes('kofi')))
+  ) {
+    return (
+      <div className={`${containerBase} bg-[#E11D48] text-white`}>
+        <Heart className={`${iconCls} fill-current`} />
+      </div>
+    );
+  }
+
+  // 12. Calendar / Booking
+  if (
+    cleanIcon === 'calendar' ||
+    (!cleanIcon && (norm.includes('calendar') || norm.includes('cal.com') || norm.includes('calendly') || norm.includes('schedule') || norm.includes('book-meeting')))
+  ) {
+    return (
+      <div className={`${containerBase} bg-[#3B82F6] text-white`}>
+        <Calendar className={iconCls} />
+      </div>
+    );
+  }
+
+  // 13. Mail / Contact
+  if (
+    cleanIcon === 'mail' ||
+    cleanIcon === 'email' ||
+    cleanIcon === 'contact' ||
+    (!cleanIcon && (norm.includes('mailto:') || norm.includes('mail') || norm.includes('contact') || norm.includes('message') || norm.includes('chat')))
+  ) {
+    return (
+      <div className={`${containerBase} bg-[#8B5CF6] text-white`}>
+        <Mail className={iconCls} />
+      </div>
+    );
+  }
+
+  // 14. Project / Folder / Work / Portfolio
+  if (
+    cleanIcon === 'project' ||
+    cleanIcon === 'folder' ||
+    (!cleanIcon && (norm.includes('project') || norm.includes('folder') || norm.includes('work') || norm.includes('portfolio')))
+  ) {
+    return (
+      <div className={`${containerBase} bg-[#2563EB] text-white`}>
+        <Folder className={`${iconCls} fill-current`} />
+      </div>
+    );
+  }
+
+  // 15. Note / Study / Book / Doc / Course
+  if (
+    cleanIcon === 'note' ||
+    cleanIcon === 'study' ||
+    cleanIcon === 'book' ||
+    (!cleanIcon && (norm.includes('note') || norm.includes('study') || norm.includes('book') || norm.includes('doc') || norm.includes('course')))
+  ) {
+    return (
+      <div className={`${containerBase} bg-[#16A34A] text-white`}>
+        <BookOpen className={iconCls} />
+      </div>
+    );
+  }
+
+  // 16. Globe / Default
   return (
-    <div className="w-10 h-10 rounded-xl bg-indigo-500/15 text-indigo-500 flex items-center justify-center shrink-0">
-      <Globe className="w-5 h-5" />
+    <div className={`${containerBase} bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-indigo-500/20`}>
+      <Globe className={iconCls} />
     </div>
   );
 }

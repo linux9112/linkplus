@@ -359,5 +359,34 @@ describe('Profile Customization Studio & Individual Link Logo Uploads', () => {
       const projIcon = renderLinkIcon('folder', 'My Projects', 'https://github.com/project');
       expect(projIcon).toBeDefined();
     });
+
+    it('renders distinctive fallback icons for all supported fallback options and sizes', () => {
+      const options = [
+        'globe',
+        'github',
+        'twitter',
+        'instagram',
+        'linkedin',
+        'youtube',
+        'music',
+        'shop',
+        'blog',
+        'code',
+        'star',
+        'heart',
+        'calendar',
+        'mail',
+      ];
+
+      for (const opt of options) {
+        const icon = renderLinkIcon(opt);
+        expect(icon).toBeDefined();
+        expect(icon.type).toBe('div');
+
+        const iconSm = renderLinkIcon(opt, undefined, undefined, 'sm');
+        expect(iconSm).toBeDefined();
+        expect(iconSm.type).toBe('div');
+      }
+    });
   });
 });

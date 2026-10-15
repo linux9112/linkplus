@@ -861,15 +861,15 @@ export const LinksPage: React.FC = () => {
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   {form.thumbnail_url ? (
-                    <div className="w-8 h-8 rounded-lg bg-white/10 dark:bg-black/20 flex items-center justify-center overflow-hidden shrink-0 border border-white/20 p-0.5">
+                    <div className="w-10 h-10 rounded-xl bg-white/10 dark:bg-black/20 flex items-center justify-center overflow-hidden shrink-0 border border-white/20 p-0.5">
                       <img
                         src={form.thumbnail_url}
                         alt="Logo"
-                        className="w-full h-full object-contain rounded"
+                        className="w-full h-full object-contain rounded-lg"
                       />
                     </div>
                   ) : (
-                    <div className="w-8 h-8 shrink-0 flex items-center justify-center">
+                    <div className="w-10 h-10 shrink-0 flex items-center justify-center">
                       {renderLinkIcon(form.icon, form.title, form.destination_url)}
                     </div>
                   )}
@@ -1104,14 +1104,22 @@ export const LinksPage: React.FC = () => {
                   key={ic}
                   type="button"
                   onClick={() => setForm({ ...form, icon: ic })}
-                  className={`p-2.5 rounded-xl border flex items-center gap-1.5 text-xs capitalize transition-all ${
+                  className={`p-2 pr-3 rounded-xl border flex items-center gap-2 text-xs transition-all ${
                     form.icon === ic
-                      ? 'bg-[#EEF2FF] border-[#4F46E5] text-[#4F46E5] dark:bg-[#1E1B4B] dark:border-[#6366F1] dark:text-[#818CF8]'
+                      ? 'bg-[#EEF2FF] border-[#4F46E5] text-[#4F46E5] dark:bg-[#1E1B4B] dark:border-[#6366F1] dark:text-[#818CF8] ring-2 ring-[#4F46E5]/40 font-semibold shadow-xs'
                       : 'bg-white dark:bg-[#171923] border-[#E5E7EB] dark:border-[#343B4B] text-[#424B5A] dark:text-[#A7AFBD] hover:bg-slate-50 dark:hover:bg-[#272D3A]'
                   }`}
                 >
-                  {renderLinkIcon(ic)}
-                  <span>{ic}</span>
+                  {renderLinkIcon(ic, undefined, undefined, 'sm')}
+                  <span>
+                    {ic === 'github'
+                      ? 'GitHub'
+                      : ic === 'youtube'
+                      ? 'YouTube'
+                      : ic === 'linkedin'
+                      ? 'LinkedIn'
+                      : ic.charAt(0).toUpperCase() + ic.slice(1)}
+                  </span>
                 </button>
               ))}
             </div>
