@@ -35,7 +35,10 @@ export function isAllowedOrigin(origin?: string): boolean {
     'http://127.0.0.1:5173',
     'http://127.0.0.1:3000',
   ];
-  return allowed.includes(clean);
+  if (allowed.includes(clean)) return true;
+  // Allow any Vercel production or preview deployment domains for this project
+  if (/^https:\/\/[a-zA-Z0-9_.-]+\.vercel\.app$/.test(clean)) return true;
+  return false;
 }
 
 /**

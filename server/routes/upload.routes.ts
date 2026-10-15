@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { prisma } from '../db/prisma.js';
+import { env } from '../config/env.js';
 import { requireAuth } from '../middleware/auth.middleware.js';
 import { uploadRateLimiter } from '../middleware/rate-limit.middleware.js';
 import {
@@ -282,6 +283,7 @@ router.post(
           });
           return;
         } catch (err: any) {
+          console.error(`[Upload API] GitHub upload failed for user @${req.user!.username}:`, err.message || err);
           if (err instanceof GitHubStorageError) {
             res.status(err.statusCode).json({
               error: err.message,
@@ -289,7 +291,11 @@ router.post(
             });
             return;
           }
-          throw err;
+          res.status(502).json({
+            error: err.message || 'Image storage service encountered an error',
+            code: 'STORAGE_FAILED',
+          });
+          return;
         }
       }
 
@@ -536,6 +542,27 @@ router.delete(
     }
   }
 );
+
+/**
+ * GET /api/upload/status
+ * Diagnostic status endpoint for verifying storage configuration safely without exposing secrets.
+ */
+router.get('/status', (_req: Request, res: Response): void => {
+  const config = githubStorageService.getConfig();
+  const rawToken = (env.GITHUB_TOKEN || '').trim().replace(/^bearer\s+/i, '').replace(/^["']+|["']+$/g, '').trim();
+  res.status(200).json({
+    status: 'ok',
+    storage_type: config.isConfigured ? 'github' : 'local_mysql',
+    github_storage_configured: config.isConfigured,
+    owner: config.owner,
+    repo: config.repo,
+    branch: config.branch,
+    path_prefix: config.pathPrefix,
+    token_present: Boolean(rawToken),
+    token_preview: rawToken.length >= 8 ? `${rawToken.slice(0, 4)}...${rawToken.slice(-4)}` : null,
+    token_length: rawToken.length,
+  });
+});
 
 /**
  * GET /api/uploads/:category/:filename

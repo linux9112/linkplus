@@ -9,6 +9,29 @@ const emptyToUndefined = (val: unknown) =>
 
 const stringOrUndefined = z.preprocess(emptyToUndefined, z.string().optional());
 
+const cleanGitHubToken = (val: unknown) => {
+  let str = typeof val === 'string' ? val : undefined;
+  if (!str || str.trim() === '') {
+    str =
+      process.env.GITHUB_TOKEN ||
+      process.env.GH_TOKEN ||
+      process.env.GITHUB_ACCESS_TOKEN ||
+      process.env.GITHUB_PAT ||
+      process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
+  }
+  if (!str || typeof str !== 'string') return undefined;
+  let t = str.trim();
+  t = t.replace(/^["']+|["']+$/g, '').trim();
+  t = t.replace(/^bearer\s+/i, '').trim();
+  return t || undefined;
+};
+
+const cleanIdentifier = (val: unknown, fallback: string): string => {
+  if (typeof val !== 'string' || val.trim() === '') return fallback;
+  let s = val.trim().replace(/^["']+|["']+$/g, '').trim();
+  return s || fallback;
+};
+
 export const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -72,11 +95,11 @@ export const envSchema = z
     ),
 
     // Centralized GitHub Image Storage Configuration
-    GITHUB_TOKEN: stringOrUndefined,
-    GITHUB_OWNER: z.preprocess(emptyToUndefined, z.string().default('linux9112')),
-    GITHUB_REPO: z.preprocess(emptyToUndefined, z.string().default('linkplus')),
-    GITHUB_BRANCH: z.preprocess(emptyToUndefined, z.string().default('main')),
-    GITHUB_PATH_PREFIX: z.preprocess(emptyToUndefined, z.string().default('uploads')),
+    GITHUB_TOKEN: z.preprocess(cleanGitHubToken, z.string().optional()),
+    GITHUB_OWNER: z.preprocess((val) => cleanIdentifier(val, 'linux9112'), z.string().default('linux9112')),
+    GITHUB_REPO: z.preprocess((val) => cleanIdentifier(val, 'linkplus'), z.string().default('linkplus')),
+    GITHUB_BRANCH: z.preprocess((val) => cleanIdentifier(val, 'main'), z.string().default('main')),
+    GITHUB_PATH_PREFIX: z.preprocess((val) => cleanIdentifier(val, 'uploads'), z.string().default('uploads')),
   })
   .transform((data) => {
     const isGitHubStorageConfigured = Boolean(
@@ -84,7 +107,7 @@ export const envSchema = z
       data.GITHUB_OWNER && data.GITHUB_OWNER.trim() !== '' &&
       data.GITHUB_REPO && data.GITHUB_REPO.trim() !== ''
     );
-    let databaseUrl = data.DATABASE_URL;
+    let databaseUrl: string = data.DATABASE_URL || '';
     if (!databaseUrl || databaseUrl.trim() === '') {
       const encodedUser = encodeURIComponent(data.DB_USER);
       const encodedPass = encodeURIComponent(data.DB_PASSWORD);
@@ -106,9 +129,9 @@ export const envSchema = z
 
     if (data.CORS_ORIGINS) {
       data.CORS_ORIGINS.split(',')
-        .map((s) => s.trim().replace(/\/+$/, ''))
+        .map((s: string) => s.trim().replace(/\/+$/, ''))
         .filter(Boolean)
-        .forEach((origin) => corsSet.add(origin));
+        .forEach((origin: string) => corsSet.add(origin));
     }
 
     return {

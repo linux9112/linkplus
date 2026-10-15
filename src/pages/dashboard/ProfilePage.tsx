@@ -303,7 +303,10 @@ export const ProfilePage: React.FC = () => {
             showToast('Profile photo updated!', 'success');
             return;
           }
-        } catch {}
+        } catch (fallbackErr: any) {
+          showToast(fallbackErr.message || err.message || 'Failed to save avatar', 'error');
+          return;
+        }
         showToast(err.message || 'Failed to save avatar', 'error');
       }
     } else if (cropTarget.type === 'cover') {

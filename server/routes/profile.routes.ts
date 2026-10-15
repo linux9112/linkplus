@@ -263,11 +263,13 @@ router.post('/avatar', requireAuth, async (req: Request, res: Response, next: Ne
           uploaded_at: new Date().toISOString(),
         };
       } catch (err: any) {
+        console.error(`[Profile API] GitHub upload failed for avatar @${req.user!.username}:`, err.message || err);
         if (err instanceof GitHubStorageError) {
           res.status(err.statusCode).json({ error: err.message, code: err.code });
           return;
         }
-        throw err;
+        res.status(502).json({ error: err.message || 'Failed to upload avatar', code: 'STORAGE_FAILED' });
+        return;
       }
     }
 

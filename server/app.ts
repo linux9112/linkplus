@@ -70,7 +70,7 @@ export function createApp(): Application {
   }
 
   // Basic Health Check
-  app.get('/api/health', (_req, res) => {
+  app.all('/api/health', (_req, res) => {
     res.status(200).json({
       status: 'ok',
       service: 'linkpulse-api',

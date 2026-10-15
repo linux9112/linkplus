@@ -126,12 +126,13 @@ class GitHubStorageService {
    * Checks whether GitHub storage credentials and repository details are configured.
    */
   public isConfigured(): boolean {
+    const token = (env.GITHUB_TOKEN || '').trim().replace(/^bearer\s+/i, '').replace(/^["']+|["']+$/g, '').trim();
+    const owner = (env.GITHUB_OWNER || '').trim().replace(/^["']+|["']+$/g, '').trim();
+    const repo = (env.GITHUB_REPO || '').trim().replace(/^["']+|["']+$/g, '').trim();
     return Boolean(
-      env.GITHUB_STORAGE_ENABLED &&
-      env.GITHUB_TOKEN &&
-      env.GITHUB_TOKEN.trim().length > 0 &&
-      env.GITHUB_OWNER &&
-      env.GITHUB_REPO
+      token.length > 0 &&
+      owner.length > 0 &&
+      repo.length > 0
     );
   }
 
@@ -141,10 +142,10 @@ class GitHubStorageService {
   public getConfig(): StorageConfigInfo {
     return {
       isConfigured: this.isConfigured(),
-      owner: env.GITHUB_OWNER || 'linux9112',
-      repo: env.GITHUB_REPO || 'linkplus',
-      branch: env.GITHUB_BRANCH || 'main',
-      pathPrefix: env.GITHUB_PATH_PREFIX || 'uploads',
+      owner: (env.GITHUB_OWNER || 'linux9112').trim().replace(/^["']+|["']+$/g, ''),
+      repo: (env.GITHUB_REPO || 'linkplus').trim().replace(/^["']+|["']+$/g, ''),
+      branch: (env.GITHUB_BRANCH || 'main').trim().replace(/^["']+|["']+$/g, ''),
+      pathPrefix: (env.GITHUB_PATH_PREFIX || 'uploads').trim().replace(/^["']+|["']+$/g, ''),
     };
   }
 
@@ -192,17 +193,25 @@ class GitHubStorageService {
     }
 
     const { relativePath, filename } = generateSafeGitHubPath(category, userId, ext);
-    const owner = env.GITHUB_OWNER || 'linux9112';
-    const repo = env.GITHUB_REPO || 'linkplus';
-    const branch = env.GITHUB_BRANCH || 'main';
-    const token = env.GITHUB_TOKEN!.trim();
+    const owner = (env.GITHUB_OWNER || 'linux9112').trim().replace(/^["']+|["']+$/g, '');
+    const repo = (env.GITHUB_REPO || 'linkplus').trim().replace(/^["']+|["']+$/g, '');
+    const branch = (env.GITHUB_BRANCH || 'main').trim().replace(/^["']+|["']+$/g, '');
+    const token = (env.GITHUB_TOKEN || '').trim().replace(/^bearer\s+/i, '').replace(/^["']+|["']+$/g, '').trim();
 
-    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${this.encodeGitHubPath(relativePath)}`;
+    if (!token) {
+      throw new GitHubStorageError(
+        'GitHub centralized image storage is not configured on this server. GITHUB_TOKEN is required.',
+        503,
+        'STORAGE_NOT_CONFIGURED'
+      );
+    }
+
+    const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${this.encodeGitHubPath(relativePath)}`;
     const base64Content = buffer.toString('base64');
     const msg = commitMessage || `Upload ${category.slice(0, -1)} for user ${userId.slice(0, 8)} [skip ci]`;
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), 20000);
 
     try {
       const response = await fetch(apiUrl, {
@@ -254,14 +263,24 @@ class GitHubStorageService {
       }
 
       if (response.status === 401) {
+        const masked = token.length >= 8 ? `${token.slice(0, 4)}...${token.slice(-4)}` : '***';
+        console.error(
+          `[GitHubStorage] 401 Unauthorized from GitHub API: ${responseData.message || 'Bad credentials'}. ` +
+          `Target: ${owner}/${repo}@${branch}. Token: ${masked} (len: ${token.length})`
+        );
         throw new GitHubStorageError(
-          'GitHub authentication failed. The configured GITHUB_TOKEN is invalid or has expired.',
+          `GitHub authentication failed (${responseData.message || 'Bad credentials'}). The configured GITHUB_TOKEN is invalid or has expired. (Repository: ${owner}/${repo})`,
           401,
           'GITHUB_AUTH_FAILED'
         );
       }
 
       if (response.status === 403) {
+        const masked = token.length >= 8 ? `${token.slice(0, 4)}...${token.slice(-4)}` : '***';
+        console.error(
+          `[GitHubStorage] 403 Forbidden from GitHub API: ${responseData.message || 'Permission denied'}. ` +
+          `Target: ${owner}/${repo}@${branch}. Token: ${masked} (len: ${token.length})`
+        );
         if (rateLimitRemaining === '0') {
           throw new GitHubStorageError(
             'GitHub API rate limit exceeded. Please wait a few minutes before uploading more images.',
@@ -270,30 +289,36 @@ class GitHubStorageService {
           );
         }
         throw new GitHubStorageError(
-          `GitHub upload forbidden: Personal access token does not have write permissions for repository ${owner}/${repo}. ` +
-            'Please update your fine-grained token with "Contents: Read and write" repository permissions.',
+          `GitHub upload forbidden: ${responseData.message || 'Token lacks write permissions for repository ' + owner + '/' + repo}. ` +
+            'Please verify that the fine-grained token has "Contents: Read and write" repository permissions.',
           403,
           'GITHUB_PERMISSION_DENIED'
         );
       }
 
       if (response.status === 404) {
+        console.error(
+          `[GitHubStorage] 404 Not Found from GitHub API: ${responseData.message || 'Not found'}. ` +
+          `Target: ${apiUrl}`
+        );
         throw new GitHubStorageError(
-          `GitHub repository or branch not found: ${owner}/${repo} on branch "${branch}".`,
+          `GitHub repository or branch not found: ${owner}/${repo} on branch "${branch}". ${responseData.message || ''}`,
           404,
           'GITHUB_REPO_NOT_FOUND'
         );
       }
 
       if (response.status === 409) {
+        console.error(`[GitHubStorage] 409 Conflict: ${responseData.message}`);
         throw new GitHubStorageError(
-          'GitHub file upload conflict (SHA mismatch or concurrent modification).',
+          'GitHub file upload conflict (SHA mismatch or concurrent modification). Please try again.',
           409,
           'GITHUB_CONFLICT'
         );
       }
 
       if (response.status === 422) {
+        console.error(`[GitHubStorage] 422 Validation Error: ${responseData.message}. Path: ${relativePath}`);
         throw new GitHubStorageError(
           `GitHub rejected image upload payload: ${responseData.message || 'Validation failed'}.`,
           422,
@@ -301,6 +326,9 @@ class GitHubStorageService {
         );
       }
 
+      console.error(
+        `[GitHubStorage] Unexpected HTTP ${response.status}: ${responseData.message || response.statusText}. Target: ${apiUrl}`
+      );
       throw new GitHubStorageError(
         `GitHub API returned HTTP ${response.status}: ${responseData.message || response.statusText}`,
         502,
@@ -313,13 +341,14 @@ class GitHubStorageService {
       }
       if (err.name === 'AbortError') {
         throw new GitHubStorageError(
-          'Image upload to GitHub timed out after 15 seconds. Please try again.',
+          'Image upload to GitHub timed out after 20 seconds. Please try again.',
           504,
           'GITHUB_TIMEOUT'
         );
       }
+      console.error(`[GitHubStorage] Network error:`, err.message || err);
       throw new GitHubStorageError(
-        `Network error connecting to GitHub: ${err.message || 'Connection failed'}`,
+        `Network communication error with GitHub API: ${err.message || 'Connection failed'}`,
         502,
         'GITHUB_NETWORK_ERROR'
       );
@@ -359,17 +388,17 @@ class GitHubStorageService {
       return { success: false, deleted: false, error: 'Unauthorized path modification.' };
     }
 
-    const owner = env.GITHUB_OWNER || 'linux9112';
-    const repo = env.GITHUB_REPO || 'linkplus';
-    const branch = env.GITHUB_BRANCH || 'main';
-    const token = env.GITHUB_TOKEN!.trim();
+    const owner = (env.GITHUB_OWNER || 'linux9112').trim().replace(/^["']+|["']+$/g, '');
+    const repo = (env.GITHUB_REPO || 'linkplus').trim().replace(/^["']+|["']+$/g, '');
+    const branch = (env.GITHUB_BRANCH || 'main').trim().replace(/^["']+|["']+$/g, '');
+    const token = (env.GITHUB_TOKEN || '').trim().replace(/^bearer\s+/i, '').replace(/^["']+|["']+$/g, '').trim();
 
     try {
       let sha = initialSha;
 
       // If SHA is missing, query GitHub for the current blob SHA
       if (!sha) {
-        const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${this.encodeGitHubPath(cleanPath)}?ref=${branch}`;
+        const getUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${this.encodeGitHubPath(cleanPath)}?ref=${encodeURIComponent(branch)}`;
         const getRes = await fetch(getUrl, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -397,7 +426,7 @@ class GitHubStorageService {
       }
 
       // Execute DELETE commit
-      const deleteUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${this.encodeGitHubPath(cleanPath)}`;
+      const deleteUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${this.encodeGitHubPath(cleanPath)}`;
       const delRes = await fetch(deleteUrl, {
         method: 'DELETE',
         headers: {
@@ -431,16 +460,16 @@ class GitHubStorageService {
    */
   public async fetchImage(filePath: string): Promise<{ buffer: Buffer; contentType: string } | null> {
     const cleanPath = filePath.replace(/^\/+/, '');
-    const pathPrefix = (env.GITHUB_PATH_PREFIX || 'uploads').replace(/^\/+|\/+$/g, '');
+    const pathPrefix = (env.GITHUB_PATH_PREFIX || 'uploads').trim().replace(/^["']+|["']+$/g, '').replace(/^\/+|\/+$/g, '');
 
     // Strict path validation
     if (!cleanPath.startsWith(`${pathPrefix}/`) || cleanPath.includes('..')) {
       return null;
     }
 
-    const owner = env.GITHUB_OWNER || 'linux9112';
-    const repo = env.GITHUB_REPO || 'linkplus';
-    const branch = env.GITHUB_BRANCH || 'main';
+    const owner = (env.GITHUB_OWNER || 'linux9112').trim().replace(/^["']+|["']+$/g, '');
+    const repo = (env.GITHUB_REPO || 'linkplus').trim().replace(/^["']+|["']+$/g, '');
+    const branch = (env.GITHUB_BRANCH || 'main').trim().replace(/^["']+|["']+$/g, '');
 
     const ext = cleanPath.split('.').pop()?.toLowerCase() || 'png';
     const contentType =
