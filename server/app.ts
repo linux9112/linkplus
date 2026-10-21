@@ -99,7 +99,7 @@ export function createApp(): Application {
         instructions: [
           '1. Open your .env file in the project root.',
           '2. Set DB_HOST to your Hostinger MySQL hostname (or localhost if running on the same server).',
-          '3. Set DB_NAME=u199400152_linkgenerator and DB_USER=u199400152_linkgenerator.',
+          '3. Set DB_NAME=u199400152_linkkpluss and DB_USER=u199400152_linkkpluss.',
           '4. Set DB_PASSWORD to your MySQL database user password.',
           '5. If connecting remotely to Hostinger MySQL, whitelist your IP under Hostinger hPanel -> Databases -> Remote MySQL.',
           '6. Run `npm run db:migrate` to create all 11 MySQL tables.',

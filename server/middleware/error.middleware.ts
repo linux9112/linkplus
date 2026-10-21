@@ -85,7 +85,7 @@ export const errorHandler: ErrorRequestHandler = (
   ) {
     res.status(503).json({
       error:
-        'MySQL Database Connection Error: Unable to reach the configured MySQL database. Verify DB_HOST, DB_PORT, DB_NAME (u199400152_linkgenerator), DB_USER (u199400152_linkgenerator), and DB_PASSWORD in your .env file, ensure Remote MySQL is enabled in Hostinger hPanel if connecting remotely, and run `npm run db:migrate`.',
+        'MySQL Database Connection Error: Unable to reach the configured MySQL database. Verify DB_HOST, DB_PORT, DB_NAME (u199400152_linkkpluss), DB_USER (u199400152_linkkpluss), and DB_PASSWORD in your .env file, ensure Remote MySQL is enabled in Hostinger hPanel if connecting remotely, and run `npm run db:migrate`.',
       code: 'DATABASE_UNREACHABLE',
       setupRequired: true,
     });

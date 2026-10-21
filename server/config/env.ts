@@ -52,11 +52,11 @@ export const envSchema = z
     DB_PORT: z.preprocess(emptyToUndefined, z.coerce.number().default(3306)),
     DB_NAME: z.preprocess(
       emptyToUndefined,
-      z.string().min(1, 'DB_NAME is required').default('u199400152_linkgenerator')
+      z.string().min(1, 'DB_NAME is required').default('u199400152_linkkpluss')
     ),
     DB_USER: z.preprocess(
       emptyToUndefined,
-      z.string().min(1, 'DB_USER is required').default('u199400152_linkgenerator')
+      z.string().min(1, 'DB_USER is required').default('u199400152_linkkpluss')
     ),
     DB_PASSWORD: z.preprocess(
       (val) => (typeof val === 'string' ? val : ''),

@@ -53,7 +53,7 @@ export const DatabaseSetupBanner: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-sm text-amber-200">
-                  MySQL Database Connection Required ({status.database || 'u199400152_linkgenerator'})
+                  MySQL Database Connection Required ({status.database || 'u199400152_linkkpluss'})
                 </span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-amber-900/80 border border-amber-700 text-amber-300">
                   Host: {status.host || 'unconfigured'}
@@ -94,7 +94,7 @@ export const DatabaseSetupBanner: React.FC = () => {
               <ol className="space-y-1 text-amber-100/90 list-decimal list-inside">
                 <li>Open <code className="text-amber-300">.env</code> in the project root.</li>
                 <li>Set <code className="text-amber-300">DB_HOST</code> to your Hostinger MySQL host (or <code className="text-amber-300">127.0.0.1</code> for local MySQL).</li>
-                <li>Confirm <code className="text-amber-300">DB_NAME=u199400152_linkgenerator</code> and <code className="text-amber-300">DB_USER=u199400152_linkgenerator</code>.</li>
+                <li>Confirm <code className="text-amber-300">DB_NAME=u199400152_linkkpluss</code> and <code className="text-amber-300">DB_USER=u199400152_linkkpluss</code>.</li>
                 <li>Enter your database password in <code className="text-amber-300">DB_PASSWORD=</code>.</li>
                 <li>In Hostinger hPanel → Databases → Remote MySQL, whitelist your IP if connecting remotely.</li>
               </ol>
